@@ -81,3 +81,4 @@ export const CommonStyles = StyleSheet.create({
     paddingHorizontal: 12,
   },
 });
+

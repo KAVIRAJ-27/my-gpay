@@ -65,3 +65,4 @@ export const Typography: Record<string, TextStyle> = {
     color: Colors.primary,
   },
 };
+

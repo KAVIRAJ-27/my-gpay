@@ -1,26 +1,29 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { View, StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
+import { AuthProvider } from '@/context/AuthContext';
 
-// Keep the splash screen visible while assets & biometrics initialize
+// Keep native splash screen visible until AuthProvider initializes
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   return (
-    <View style={styles.root}>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: Colors.background },
-          animation: 'fade',
-        }}>
-        <Stack.Screen name="index" />
-      </Stack>
-    </View>
+    <AuthProvider>
+      <View style={styles.root}>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: Colors.background },
+            animation: 'fade',
+          }}>
+          <Stack.Screen name="index" />
+        </Stack>
+      </View>
+    </AuthProvider>
   );
 }
 
