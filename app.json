@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "gpay-nu",
-    "slug": "gpay-nu",
+    "name": "G Pay.nu",
+    "slug": "g-pay-nu",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
