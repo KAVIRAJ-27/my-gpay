@@ -87,6 +87,11 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
       timestamp INTEGER NOT NULL,
       created_at_formatted TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
 
   // Ensure initial wallet record exists with default demo balance
@@ -413,4 +418,27 @@ export async function getWalletStats(): Promise<WalletStats> {
     totalDebited: debitRow?.total || 0,
     transactionCount: countRow?.cnt || 0,
   };
+}
+
+/**
+ * Retrieve a persistent configuration setting from SQLite
+ */
+export async function getSetting(key: string, defaultValue = ''): Promise<string> {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<{ value: string }>(
+    'SELECT value FROM app_settings WHERE key = ?',
+    [key]
+  );
+  return row ? row.value : defaultValue;
+}
+
+/**
+ * Save or update a persistent configuration setting in SQLite
+ */
+export async function setSetting(key: string, value: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    'INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)',
+    [key, value]
+  );
 }

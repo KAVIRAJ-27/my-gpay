@@ -9,6 +9,7 @@
  */
 
 import * as LocalAuthentication from 'expo-local-authentication';
+import { getSetting, setSetting } from './database';
 
 export interface BiometricStatus {
   hasHardware: boolean;
@@ -163,15 +164,49 @@ export async function authenticateWithBiometrics(
 }
 
 /**
- * Default fallback security PIN for the simulated wallet
+ * Fallback security PIN state for the simulated wallet
  */
 export const DEFAULT_SIMULATED_PIN = '1234';
+let cachedPin: string = DEFAULT_SIMULATED_PIN;
 
 /**
- * Validates the simulated fallback PIN.
+ * Initialize persistent security PIN from SQLite
+ */
+export async function initAuthSecurity(): Promise<string> {
+  try {
+    const stored = await getSetting('security_pin', DEFAULT_SIMULATED_PIN);
+    cachedPin = stored || DEFAULT_SIMULATED_PIN;
+    return cachedPin;
+  } catch {
+    cachedPin = DEFAULT_SIMULATED_PIN;
+    return cachedPin;
+  }
+}
+
+/**
+ * Retrieve currently active 4-digit security PIN
+ */
+export function getActivePIN(): string {
+  return cachedPin;
+}
+
+/**
+ * Update security PIN in local SQLite storage
+ */
+export async function updateSecurityPIN(newPin: string): Promise<boolean> {
+  if (!/^\d{4}$/.test(newPin)) {
+    return false;
+  }
+  cachedPin = newPin;
+  await setSetting('security_pin', newPin);
+  return true;
+}
+
+/**
+ * Validates the simulated security PIN against current active PIN
  */
 export function verifySimulatedPIN(pin: string): AuthResult {
-  if (pin === DEFAULT_SIMULATED_PIN) {
+  if (pin === cachedPin) {
     return {
       success: true,
       method: 'pin',
@@ -181,6 +216,6 @@ export function verifySimulatedPIN(pin: string): AuthResult {
     success: false,
     method: 'pin',
     error: 'invalid_pin',
-    errorMessage: 'Incorrect PIN. Try default test PIN: 1234',
+    errorMessage: `Incorrect PIN. Enter active PIN (default: ${cachedPin})`,
   };
 }

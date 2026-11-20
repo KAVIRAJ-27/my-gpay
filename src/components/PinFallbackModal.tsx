@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Typography, CommonStyles } from '@/theme';
-import { verifySimulatedPIN, DEFAULT_SIMULATED_PIN } from '@/services/auth';
+import { verifySimulatedPIN, getActivePIN } from '@/services/auth';
 
 interface PinFallbackModalProps {
   visible: boolean;
@@ -98,7 +98,7 @@ export function PinFallbackModal({ visible, onClose, onSuccess }: PinFallbackMod
             <Text style={styles.errorText}>{error}</Text>
           ) : (
             <Text style={styles.hintText}>
-              Default test PIN: <Text style={styles.hintBold}>{DEFAULT_SIMULATED_PIN}</Text>
+              Active test PIN: <Text style={styles.hintBold}>{getActivePIN()}</Text>
             </Text>
           )}
 

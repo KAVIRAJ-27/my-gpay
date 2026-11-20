@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Typography } from '@/theme';
 import { executeDemoTransfer, DemoTransactionRecord, formatTimestamp } from '@/services/database';
+import { getActivePIN } from '@/services/auth';
 import { DemoBadge } from './DemoBadge';
 import { NumericKeypad } from './NumericKeypad';
 
@@ -239,8 +240,9 @@ export function BankTransferModal({
 
   // Verify PIN and Execute Demo Transfer
   const verifyPinAndExecute = async (pin: string) => {
-    if (pin !== '1234') {
-      setPinError('Incorrect UPI PIN. Use default demo PIN: 1234');
+    const activePin = getActivePIN();
+    if (pin !== activePin) {
+      setPinError(`Incorrect UPI PIN. Use active demo PIN: ${activePin}`);
       setEnteredPin('');
       return;
     }
@@ -535,7 +537,7 @@ export function BankTransferModal({
               </Text>
               <View style={styles.pinHintBadge}>
                 <Ionicons name="key" size={14} color={Colors.primary} />
-                <Text style={styles.pinHintText}>Default Demo PIN: 1234</Text>
+                <Text style={styles.pinHintText}>Active Demo PIN: {getActivePIN()}</Text>
               </View>
             </View>
 

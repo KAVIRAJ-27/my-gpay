@@ -10,6 +10,7 @@ import {
   getBiometricStatus,
   authenticateWithBiometrics,
   verifySimulatedPIN,
+  initAuthSecurity,
   BiometricStatus,
 } from '@/services/auth';
 
@@ -38,6 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function init() {
       try {
+        await initAuthSecurity();
         const status = await getBiometricStatus();
         setBiometricStatus(status);
       } catch (err) {
