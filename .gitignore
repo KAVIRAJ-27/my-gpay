@@ -21,6 +21,8 @@ expo-env.d.ts
 *.mobileprovision
 /ios/
 /android/
+build/
+*.apk
 
 # Metro & Bundler
 .metro-health-check*
