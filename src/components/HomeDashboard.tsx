@@ -17,7 +17,6 @@ import {
   USER_PROFILE,
   QUICK_ACTIONS,
   FICTIONAL_CONTACTS,
-  DEMO_ACTIVITIES,
   QuickActionItem,
   DemoActivity,
   FictionalContact,
@@ -29,14 +28,26 @@ import {
   loadDeviceContacts,
   maskPhoneNumber,
 } from '@/services/contacts';
+import {
+  getDemoBalance,
+  getRecentDemoTransactions,
+  addDemoFunds,
+  DemoTransactionRecord,
+} from '@/services/database';
 import { useAuth } from '@/context/AuthContext';
 import { TabKey } from './CustomBottomNav';
 
 interface HomeDashboardProps {
   onNavigateTab: (tab: TabKey) => void;
+  balance?: number;
+  onBalanceChange?: (newBalance: number) => void;
 }
 
-export function HomeDashboard({ onNavigateTab }: HomeDashboardProps) {
+export function HomeDashboard({
+  onNavigateTab,
+  balance: propBalance,
+  onBalanceChange,
+}: HomeDashboardProps) {
   const { lockSimulator } = useAuth();
 
   // Modals state
@@ -50,7 +61,7 @@ export function HomeDashboard({ onNavigateTab }: HomeDashboardProps) {
   const [selectedContactForPreview, setSelectedContactForPreview] = useState<AppContact | null>(null);
   const [selectedPhone, setSelectedPhone] = useState<ContactPhoneNumber | null>(null);
 
-  // Send Money Screen state (Phase 5)
+  // Send Money Screen state (Phase 5/6)
   const [showSendMoney, setShowSendMoney] = useState(false);
   const [sendMoneyRecipient, setSendMoneyRecipient] = useState<AppContact | null>(null);
   const [sendMoneyPhone, setSendMoneyPhone] = useState<ContactPhoneNumber | null>(null);
@@ -59,8 +70,33 @@ export function HomeDashboard({ onNavigateTab }: HomeDashboardProps) {
   const [deviceContacts, setDeviceContacts] = useState<AppContact[]>([]);
   const [hasContactsPermission, setHasContactsPermission] = useState(false);
 
-  // Dynamic demo balance state
-  const [demoBalance, setDemoBalance] = useState(USER_PROFILE.demoBalance);
+  // Local SQLite dynamic demo balance & recent transactions state (Phase 6)
+  const [demoBalance, setDemoBalance] = useState<number>(propBalance ?? USER_PROFILE.demoBalance);
+  const [recentTransactions, setRecentTransactions] = useState<DemoTransactionRecord[]>([]);
+
+  // Sync propBalance if provided from parent
+  useEffect(() => {
+    if (propBalance !== undefined) {
+      setDemoBalance(propBalance);
+    }
+  }, [propBalance]);
+
+  // Refresh SQLite data on mount and after transactions
+  const refreshDatabaseData = useCallback(async () => {
+    try {
+      const b = await getDemoBalance();
+      setDemoBalance(b);
+      onBalanceChange?.(b);
+      const txns = await getRecentDemoTransactions(4);
+      setRecentTransactions(txns);
+    } catch {
+      // Fail-safe
+    }
+  }, [onBalanceChange]);
+
+  useEffect(() => {
+    refreshDatabaseData();
+  }, [refreshDatabaseData]);
 
   // Refresh device contacts if permission was already granted
   const refreshDeviceContacts = useCallback(async () => {
@@ -140,27 +176,46 @@ export function HomeDashboard({ onNavigateTab }: HomeDashboardProps) {
     setShowSendMoney(true);
   };
 
-  const handleSelectActivity = (activity: DemoActivity) => {
+  const handleSelectDemoTxn = (txn: DemoTransactionRecord) => {
     setSelectedAction({
-      id: activity.id,
-      title: activity.title,
-      iconName: activity.iconName,
-      description: `${activity.subtitle} • Amount: ₹${activity.amount.toLocaleString(
-        'en-IN'
-      )} (${activity.timestamp})`,
+      id: txn.id,
+      title: `${txn.type === 'credit' ? 'Received from / Added' : 'Paid to'} ${txn.recipient_name}`,
+      iconName:
+        txn.category === 'topup'
+          ? 'add-circle-outline'
+          : txn.category === 'reset'
+          ? 'refresh-outline'
+          : txn.type === 'credit'
+          ? 'arrow-down-circle-outline'
+          : 'paper-plane-outline',
+      description: `Amount: ₹${txn.amount.toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+      })}\nStatus: ${txn.status}\nDate: ${txn.created_at_formatted}\nNote: ${
+        txn.note || 'None'
+      }\n\nLocal Demo Record ID: ${txn.id}\n(Stored in device SQLite — not a payment reference)`,
     });
     setShowActionModal(true);
   };
 
-  const handleAddDemoCash = () => {
-    setDemoBalance((prev) => prev + 500);
-    setSelectedAction({
-      id: 'add_cash',
-      title: 'Demo Cash Added',
-      iconName: 'checkmark-circle-outline',
-      description: 'Added ₹500.00 to your simulated wallet. Offline simulation balance updated.',
-    });
-    setShowActionModal(true);
+  const handleAddDemoCash = async () => {
+    try {
+      const res = await addDemoFunds(500, 'Simulated cash top-up');
+      setDemoBalance(res.newBalance);
+      onBalanceChange?.(res.newBalance);
+      refreshDatabaseData();
+      setSelectedAction({
+        id: 'add_cash',
+        title: 'Demo Cash Added',
+        iconName: 'wallet-outline',
+        description: `Added ₹500.00 to local simulated wallet.\nUpdated Balance: ₹${res.newBalance.toLocaleString(
+          'en-IN',
+          { minimumFractionDigits: 2 }
+        )}\n\nLocal prototype simulation only.`,
+      });
+      setShowActionModal(true);
+    } catch {
+      // Fail-safe
+    }
   };
 
   const handleOpenInfo = () => {
@@ -218,8 +273,8 @@ export function HomeDashboard({ onNavigateTab }: HomeDashboardProps) {
 
         {/* Recent Activity */}
         <RecentActivityPreview
-          activities={DEMO_ACTIVITIES}
-          onSelectActivity={handleSelectActivity}
+          activities={recentTransactions}
+          onSelectActivity={handleSelectDemoTxn}
           onViewAll={() => onNavigateTab('activity')}
         />
       </ScrollView>
@@ -230,6 +285,7 @@ export function HomeDashboard({ onNavigateTab }: HomeDashboardProps) {
         onClose={() => {
           setShowContactsScreen(false);
           refreshDeviceContacts();
+          refreshDatabaseData();
         }}
         onSelectRecipient={handleSelectRecipientFromContactsScreen}
       />
@@ -244,18 +300,25 @@ export function HomeDashboard({ onNavigateTab }: HomeDashboardProps) {
         onContinue={handleContinueFromRecipientPreview}
       />
 
-      {/* Send Money Flow Modal (Phase 5 UI) */}
+      {/* Send Money Flow Modal (Phase 5/6 UI & Transaction Engine) */}
       <SendMoneyScreen
         visible={showSendMoney}
         recipient={sendMoneyRecipient}
         initialPhone={sendMoneyPhone}
+        currentBalance={demoBalance}
         onClose={() => {
           setShowSendMoney(false);
           refreshDeviceContacts();
+          refreshDatabaseData();
         }}
         onChangeRecipient={() => {
           setShowSendMoney(false);
           setShowContactsScreen(true);
+        }}
+        onTransactionSuccess={(newBal) => {
+          setDemoBalance(newBal);
+          onBalanceChange?.(newBal);
+          refreshDatabaseData();
         }}
       />
 

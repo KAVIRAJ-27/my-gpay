@@ -1,22 +1,58 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Typography, CommonStyles } from '@/theme';
 import { USER_PROFILE } from '@/data/mockData';
+import { DemoBadge } from '../DemoBadge';
 
 interface MoneyTabProps {
+  balance?: number;
   onAddFunds: () => void;
+  onResetWallet?: () => void;
 }
 
-export function MoneyTab({ onAddFunds }: MoneyTabProps) {
+export function MoneyTab({
+  balance = USER_PROFILE.demoBalance,
+  onAddFunds,
+  onResetWallet,
+}: MoneyTabProps) {
+  const [showConfirmReset, setShowConfirmReset] = useState(false);
+
+  const handleResetPress = () => {
+    Alert.alert(
+      'Reset Demo Wallet?',
+      'This will reset your local simulated balance back to the initial prototype state (₹24,850.00). This affects local SQLite demo storage only.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset Wallet',
+          style: 'destructive',
+          onPress: () => onResetWallet?.(),
+        },
+      ]
+    );
+  };
+
   return (
     <ScrollView
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}>
-      <Text style={styles.title}>Money & Accounts</Text>
-      <Text style={styles.subtitle}>
-        Offline simulation accounts • No real financial connection
-      </Text>
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={styles.title}>Money & Accounts</Text>
+          <Text style={styles.subtitle}>
+            Offline simulation accounts • No real financial connection
+          </Text>
+        </View>
+        <DemoBadge />
+      </View>
 
       {/* Main Demo Account Card */}
       <View style={[CommonStyles.cardElevated, styles.accountCard]}>
@@ -37,27 +73,46 @@ export function MoneyTab({ onAddFunds }: MoneyTabProps) {
         <Text style={styles.upiHandle}>UPI ID: {USER_PROFILE.upiId}</Text>
 
         <View style={styles.balanceRow}>
-          <Text style={styles.balanceLabel}>Simulated Balance</Text>
+          <Text style={styles.balanceLabel}>Simulated SQLite Balance</Text>
           <Text style={styles.balanceValue}>
             ₹
-            {USER_PROFILE.demoBalance.toLocaleString('en-IN', {
+            {balance.toLocaleString('en-IN', {
               minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
             })}
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={[CommonStyles.primaryButton, styles.addFundsBtn]}
-          activeOpacity={0.8}
-          onPress={onAddFunds}>
-          <Ionicons
-            name="add-circle-outline"
-            size={18}
-            color={Colors.textInverse}
-            style={{ marginRight: 6 }}
-          />
-          <Text style={styles.addFundsBtnText}>Top Up Demo Balance</Text>
-        </TouchableOpacity>
+        {/* Action Buttons */}
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={[CommonStyles.primaryButton, styles.addFundsBtn]}
+            activeOpacity={0.8}
+            onPress={onAddFunds}>
+            <Ionicons
+              name="add-circle-outline"
+              size={18}
+              color={Colors.textInverse}
+              style={{ marginRight: 6 }}
+            />
+            <Text style={styles.addFundsBtnText}>Top Up Demo Balance</Text>
+          </TouchableOpacity>
+
+          {onResetWallet && (
+            <TouchableOpacity
+              style={styles.resetBtn}
+              activeOpacity={0.7}
+              onPress={handleResetPress}>
+              <Ionicons
+                name="refresh-outline"
+                size={16}
+                color={Colors.warning}
+                style={{ marginRight: 4 }}
+              />
+              <Text style={styles.resetBtnText}>Reset</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Linked Simulated Cards */}
@@ -97,8 +152,8 @@ export function MoneyTab({ onAddFunds }: MoneyTabProps) {
           style={{ marginRight: 8 }}
         />
         <Text style={styles.safetyText}>
-          Balances and limits shown are mock numbers stored locally. G Pay.nu does
-          not integrate with real bank servers or card networks.
+          Balances and limits shown are mock numbers stored locally in SQLite.
+          G Pay.nu does not connect to bank APIs or payment rails.
         </Text>
       </View>
     </ScrollView>
@@ -107,25 +162,30 @@ export function MoneyTab({ onAddFunds }: MoneyTabProps) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.xxxl,
+    padding: Spacing.screenPadding,
+    paddingBottom: 40,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.md,
   },
   title: {
-    ...Typography.hero,
-    fontSize: 24,
+    ...Typography.title1,
     color: Colors.textPrimary,
   },
   subtitle: {
     ...Typography.caption,
-    color: Colors.textSecondary,
+    color: Colors.textTertiary,
     marginTop: 2,
-    marginBottom: Spacing.lg,
   },
   accountCard: {
-    backgroundColor: '#0E172A',
-    borderColor: '#1E293B',
     padding: Spacing.xl,
+    backgroundColor: '#0F1626',
+    borderWidth: 1.5,
+    borderColor: '#1F2C4C',
+    borderRadius: BorderRadius.xl,
     marginBottom: Spacing.xl,
   },
   cardHeader: {
@@ -137,17 +197,17 @@ const styles = StyleSheet.create({
   bankBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   bankName: {
-    fontSize: 16,
-    fontWeight: '700',
+    ...Typography.title2,
+    fontSize: 15,
     color: Colors.textPrimary,
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.successSurface,
+    backgroundColor: 'rgba(0, 210, 255, 0.1)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: BorderRadius.full,
@@ -157,107 +217,134 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.success,
+    backgroundColor: Colors.primary,
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
-    color: Colors.success,
+    color: Colors.primary,
   },
   accountNumber: {
+    ...Typography.body,
     fontSize: 13,
     color: Colors.textSecondary,
     marginBottom: 2,
   },
   upiHandle: {
-    fontSize: 13,
-    color: Colors.primary,
-    fontWeight: '600',
-    marginBottom: Spacing.lg,
+    ...Typography.caption,
+    color: Colors.textTertiary,
+    marginBottom: Spacing.md,
   },
   balanceRow: {
-    marginBottom: Spacing.lg,
+    backgroundColor: Colors.surface,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   balanceLabel: {
+    ...Typography.caption,
     fontSize: 12,
-    color: Colors.textTertiary,
+    color: Colors.textSecondary,
+    marginBottom: 4,
   },
   balanceValue: {
-    fontSize: 28,
-    fontWeight: '800',
+    ...Typography.hero,
+    fontSize: 26,
     color: Colors.textPrimary,
-    marginTop: 2,
+    fontWeight: '800',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
   },
   addFundsBtn: {
-    width: '100%',
+    flex: 1,
+    height: 44,
   },
   addFundsBtnText: {
-    color: Colors.textInverse,
-    fontWeight: '700',
+    ...Typography.bodyBold,
     fontSize: 14,
+    color: Colors.textInverse,
+  },
+  resetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.md,
+    height: 44,
+    borderRadius: BorderRadius.xl,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  resetBtnText: {
+    ...Typography.caption,
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.warning,
   },
   sectionHeader: {
     ...Typography.title2,
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.textPrimary,
     marginBottom: Spacing.md,
   },
   methodsCard: {
-    padding: Spacing.md,
+    padding: Spacing.none,
+    overflow: 'hidden',
     marginBottom: Spacing.xl,
   },
   methodRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    padding: Spacing.md,
   },
   methodIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.lg,
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.md,
     backgroundColor: Colors.surfaceSubtle,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    justifyContent: 'center',
+    marginRight: Spacing.md,
   },
   methodDetails: {
     flex: 1,
   },
   methodTitle: {
+    ...Typography.bodyBold,
     fontSize: 14,
-    fontWeight: '600',
     color: Colors.textPrimary,
   },
   methodSub: {
+    ...Typography.caption,
     fontSize: 12,
-    color: Colors.textTertiary,
-    marginTop: 1,
+    color: Colors.textSecondary,
   },
   methodLimit: {
+    ...Typography.caption,
     fontSize: 13,
-    fontWeight: '700',
-    color: Colors.brandNu,
+    fontWeight: '600',
+    color: Colors.textTertiary,
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   safetyBox: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: Colors.surfaceSubtle,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: BorderRadius.md,
     padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
   },
   safetyText: {
+    ...Typography.caption,
     fontSize: 12,
     color: Colors.textTertiary,
-    lineHeight: 17,
     flex: 1,
+    lineHeight: 16,
   },
 });

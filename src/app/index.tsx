@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, BackHandler } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, BackHandler, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors } from '@/theme';
@@ -11,12 +11,35 @@ import { ActivityTab } from '@/components/tabs/ActivityTab';
 import { YouTab } from '@/components/tabs/YouTab';
 import { CustomBottomNav, TabKey } from '@/components/CustomBottomNav';
 import { ActionPlaceholderModal } from '@/components/ActionPlaceholderModal';
-import { QuickActionItem, DemoActivity } from '@/data/mockData';
+import { QuickActionItem, USER_PROFILE } from '@/data/mockData';
+import {
+  getDemoBalance,
+  addDemoFunds,
+  resetDemoWallet,
+  DemoTransactionRecord,
+} from '@/services/database';
 
 export default function MainAppScreen() {
   const { isAuthenticated, lockSimulator } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>('home');
   const [detailModalItem, setDetailModalItem] = useState<QuickActionItem | null>(null);
+  const [demoBalance, setDemoBalance] = useState<number>(USER_PROFILE.demoBalance);
+
+  // Sync SQLite balance
+  const refreshBalance = useCallback(async () => {
+    try {
+      const b = await getDemoBalance();
+      setDemoBalance(b);
+    } catch {
+      // Fail-safe
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshBalance();
+    }
+  }, [isAuthenticated, refreshBalance]);
 
   // Handle Android hardware back navigation
   useEffect(() => {
@@ -38,6 +61,42 @@ export default function MainAppScreen() {
     return () => subscription.remove();
   }, [isAuthenticated, activeTab]);
 
+  const handleAddFundsFromMoneyTab = async () => {
+    try {
+      const res = await addDemoFunds(1000, 'Top-up from Money tab');
+      setDemoBalance(res.newBalance);
+      setDetailModalItem({
+        id: 'topup_success',
+        title: 'Demo Balance Topped Up',
+        iconName: 'wallet-outline',
+        description: `Added ₹1,000.00 to local simulated demo wallet.\nUpdated Balance: ₹${res.newBalance.toLocaleString(
+          'en-IN',
+          { minimumFractionDigits: 2 }
+        )}\n\nStored in device SQLite database. Offline simulation prototype only.`,
+      });
+    } catch {
+      // Fail-safe
+    }
+  };
+
+  const handleResetWalletFromMoneyTab = async () => {
+    try {
+      const res = await resetDemoWallet();
+      setDemoBalance(res.newBalance);
+      setDetailModalItem({
+        id: 'reset_success',
+        title: 'Demo Wallet Reset',
+        iconName: 'refresh-outline',
+        description: `Your local simulated demo wallet has been reset to the initial balance of ₹${res.newBalance.toLocaleString(
+          'en-IN',
+          { minimumFractionDigits: 2 }
+        )}.\n\nAll real banking systems remain 100% disconnected.`,
+      });
+    } catch {
+      // Fail-safe
+    }
+  };
+
   // If locked, strictly render the Phase 2 Authentication Screen
   if (!isAuthenticated) {
     return <AuthScreen />;
@@ -50,33 +109,43 @@ export default function MainAppScreen() {
         {/* Tab Content */}
         <View style={styles.content}>
           {activeTab === 'home' && (
-            <HomeDashboard onNavigateTab={(tab) => setActiveTab(tab)} />
+            <HomeDashboard
+              onNavigateTab={(tab) => {
+                setActiveTab(tab);
+                refreshBalance();
+              }}
+              balance={demoBalance}
+              onBalanceChange={(newB) => setDemoBalance(newB)}
+            />
           )}
 
           {activeTab === 'money' && (
             <MoneyTab
-              onAddFunds={() => {
-                setDetailModalItem({
-                  id: 'topup',
-                  title: 'Add Simulated Funds',
-                  iconName: 'card-outline',
-                  description:
-                    'Simulated top-up interface. Mock funds are stored locally in the prototype database.',
-                });
-              }}
+              balance={demoBalance}
+              onAddFunds={handleAddFundsFromMoneyTab}
+              onResetWallet={handleResetWalletFromMoneyTab}
             />
           )}
 
           {activeTab === 'activity' && (
             <ActivityTab
-              onSelectActivity={(activity: DemoActivity) => {
+              onSelectActivity={(txn: DemoTransactionRecord) => {
                 setDetailModalItem({
-                  id: activity.id,
-                  title: activity.title,
-                  iconName: activity.iconName,
-                  description: `${activity.subtitle} • ₹${activity.amount.toLocaleString(
-                    'en-IN'
-                  )} (${activity.timestamp})`,
+                  id: txn.id,
+                  title: `${txn.type === 'credit' ? 'Received from / Added' : 'Paid to'} ${txn.recipient_name}`,
+                  iconName:
+                    txn.category === 'topup'
+                      ? 'add-circle-outline'
+                      : txn.category === 'reset'
+                      ? 'refresh-outline'
+                      : txn.type === 'credit'
+                      ? 'arrow-down-circle-outline'
+                      : 'paper-plane-outline',
+                  description: `Amount: ₹${txn.amount.toLocaleString('en-IN', {
+                    minimumFractionDigits: 2,
+                  })}\nStatus: ${txn.status}\nDate: ${txn.created_at_formatted}\nNote: ${
+                    txn.note || 'None'
+                  }\n\nLocal Demo Record ID: ${txn.id}\n(Stored in SQLite — not a payment reference)`,
                 });
               }}
             />
@@ -88,7 +157,10 @@ export default function MainAppScreen() {
         {/* Polished Custom Bottom Navigation Bar */}
         <CustomBottomNav
           activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab)}
+          onTabChange={(tab) => {
+            setActiveTab(tab);
+            refreshBalance();
+          }}
         />
 
         {/* Shared Detail / Placeholder Modal */}

@@ -9,31 +9,41 @@ import {
   ScrollView,
   BackHandler,
   SafeAreaView,
+  ActivityIndicator,
+  Alert,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Typography } from '@/theme';
 import { AppContact, ContactPhoneNumber, maskPhoneNumber } from '@/services/contacts';
-import { USER_PROFILE } from '@/data/mockData';
+import {
+  executeDemoTransfer,
+  DemoTransactionRecord,
+  formatTimestamp,
+} from '@/services/database';
 import { DemoBadge } from './DemoBadge';
 import { NumericKeypad } from './NumericKeypad';
 
-type SendMoneyStep = 'amount' | 'review' | 'placeholder';
+type SendMoneyStep = 'amount' | 'review' | 'confirm' | 'result';
 
 interface SendMoneyScreenProps {
   visible: boolean;
   recipient: AppContact | null;
   initialPhone?: ContactPhoneNumber | null;
+  currentBalance: number;
   onClose: () => void;
   onChangeRecipient: () => void;
+  onTransactionSuccess: (newBalance: number) => void;
 }
 
 export function SendMoneyScreen({
   visible,
   recipient,
   initialPhone,
+  currentBalance,
   onClose,
   onChangeRecipient,
+  onTransactionSuccess,
 }: SendMoneyScreenProps) {
   // Navigation step within the Send Money flow
   const [currentStep, setCurrentStep] = useState<SendMoneyStep>('amount');
@@ -47,6 +57,12 @@ export function SendMoneyScreen({
 
   // Phone selector dropdown / modal state for multi-phone contacts
   const [showPhoneSelector, setShowPhoneSelector] = useState(false);
+
+  // Execution & Duplicate protection states
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [completedTxn, setCompletedTxn] = useState<DemoTransactionRecord | null>(null);
+  const [postTxnBalance, setPostTxnBalance] = useState<number>(currentBalance);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Sync initial phone when recipient changes
   useEffect(() => {
@@ -63,6 +79,9 @@ export function SendMoneyScreen({
   useEffect(() => {
     if (visible) {
       setCurrentStep('amount');
+      setIsProcessing(false);
+      setCompletedTxn(null);
+      setErrorMessage(null);
     }
   }, [visible]);
 
@@ -75,7 +94,14 @@ export function SendMoneyScreen({
         setShowPhoneSelector(false);
         return true;
       }
-      if (currentStep === 'placeholder') {
+      if (isProcessing) {
+        return true; // Ignore back presses during atomic execution
+      }
+      if (currentStep === 'result') {
+        onClose();
+        return true;
+      }
+      if (currentStep === 'confirm') {
         setCurrentStep('review');
         return true;
       }
@@ -95,7 +121,7 @@ export function SendMoneyScreen({
       onBackPress
     );
     return () => backHandler.remove();
-  }, [visible, currentStep, showPhoneSelector, onClose]);
+  }, [visible, currentStep, showPhoneSelector, isProcessing, onClose]);
 
   // Amount parsing and validation
   const parsedAmount = useMemo(() => {
@@ -125,24 +151,13 @@ export function SendMoneyScreen({
   // Keypad Handlers
   const handleDigitPress = (digit: string) => {
     setAmountStr((prev) => {
-      // If previous was '0' and no decimal point, replace with new digit
-      if (prev === '0') {
-        return digit;
-      }
-
-      // If already contains decimal point, limit to 2 decimal places
+      if (prev === '0') return digit;
       if (prev.includes('.')) {
         const parts = prev.split('.');
-        if (parts[1] && parts[1].length >= 2) {
-          return prev; // Max 2 decimal places reached
-        }
+        if (parts[1] && parts[1].length >= 2) return prev;
       } else {
-        // Enforce max 6 integer digits (₹1,00,000 max)
-        if (prev.length >= 6) {
-          return prev;
-        }
+        if (prev.length >= 6) return prev;
       }
-
       return prev + digit;
     });
   };
@@ -150,7 +165,7 @@ export function SendMoneyScreen({
   const handleDecimalPress = () => {
     setAmountStr((prev) => {
       if (prev === '') return '0.';
-      if (prev.includes('.')) return prev; // Avoid duplicate decimal
+      if (prev.includes('.')) return prev;
       return prev + '.';
     });
   };
@@ -174,7 +189,50 @@ export function SendMoneyScreen({
     });
   };
 
-  // Quick note chips
+  // Perform atomic demo transfer execution
+  const handleExecuteTransfer = async () => {
+    if (isProcessing) return; // Prevent double taps
+    if (!recipient) return;
+
+    if (parsedAmount > currentBalance) {
+      setErrorMessage(
+        `Insufficient demo balance! You have ₹${currentBalance.toLocaleString(
+          'en-IN',
+          { minimumFractionDigits: 2 }
+        )} but tried to send ₹${parsedAmount.toLocaleString('en-IN', {
+          minimumFractionDigits: 2,
+        })}.`
+      );
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      setErrorMessage(null);
+
+      const activePhone =
+        selectedPhone ||
+        (recipient.phoneNumbers && recipient.phoneNumbers[0]) ||
+        { formattedNumber: recipient.primaryPhone, label: 'mobile' };
+
+      const res = await executeDemoTransfer({
+        recipientName: recipient.name,
+        recipientPhoneMasked: maskPhoneNumber(activePhone.formattedNumber),
+        amount: parsedAmount,
+        note: note.trim(),
+      });
+
+      setCompletedTxn(res.transaction);
+      setPostTxnBalance(res.newBalance);
+      onTransactionSuccess(res.newBalance);
+      setCurrentStep('result');
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Local simulated transfer failed.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const noteSuggestions = ['Lunch', 'Travel', 'Books', 'Gift'];
 
   if (!recipient) return null;
@@ -226,7 +284,6 @@ export function SendMoneyScreen({
                   {recipient.name}
                 </Text>
 
-                {/* Masked Phone with multi-number dropdown trigger */}
                 {recipient.phoneNumbers && recipient.phoneNumbers.length > 1 ? (
                   <TouchableOpacity
                     style={styles.multiPhoneTrigger}
@@ -295,7 +352,7 @@ export function SendMoneyScreen({
                 />
                 <Text style={styles.balanceText}>
                   Simulated Balance: ₹
-                  {USER_PROFILE.demoBalance.toLocaleString('en-IN', {
+                  {currentBalance.toLocaleString('en-IN', {
                     minimumFractionDigits: 2,
                   })}
                 </Text>
@@ -456,7 +513,7 @@ export function SendMoneyScreen({
                   <Text style={styles.detailLabel}>Demo Balance Reference</Text>
                   <Text style={styles.detailValue}>
                     ₹
-                    {USER_PROFILE.demoBalance.toLocaleString('en-IN', {
+                    {currentBalance.toLocaleString('en-IN', {
                       minimumFractionDigits: 2,
                     })}
                   </Text>
@@ -513,7 +570,7 @@ export function SendMoneyScreen({
             <View style={styles.bottomBar}>
               <TouchableOpacity
                 style={styles.continueButton}
-                onPress={() => setCurrentStep('placeholder')}
+                onPress={() => setCurrentStep('confirm')}
                 activeOpacity={0.8}
                 accessibilityLabel="Continue to Demo Simulation">
                 <Text style={styles.continueButtonText}>
@@ -529,62 +586,65 @@ export function SendMoneyScreen({
           </View>
         )}
 
-        {/* ================= STEP 3: SIMULATION PLACEHOLDER SCREEN ================= */}
-        {currentStep === 'placeholder' && (
+        {/* ================= STEP 3: CONFIRMATION SCREEN ================= */}
+        {currentStep === 'confirm' && (
           <View style={styles.screenContainer}>
-            {/* Header */}
             <View style={styles.navHeader}>
               <TouchableOpacity
-                onPress={() => setCurrentStep('review')}
+                onPress={() => !isProcessing && setCurrentStep('review')}
                 style={styles.navIconButton}
                 activeOpacity={0.7}
+                disabled={isProcessing}
                 accessibilityLabel="Back to review">
                 <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
               </TouchableOpacity>
-              <Text style={styles.navTitle}>Simulation Milestone</Text>
+              <Text style={styles.navTitle}>Confirm Simulation</Text>
               <DemoBadge />
             </View>
 
-            <View style={styles.placeholderContainer}>
-              {/* Flask / Lab Icon */}
-              <View style={styles.placeholderIconContainer}>
+            <ScrollView
+              style={styles.reviewScroll}
+              contentContainerStyle={styles.confirmContent}>
+              {/* Critical Simulation Warning Banner */}
+              <View style={styles.confirmWarningBox}>
                 <Ionicons
-                  name="construct-outline"
-                  size={48}
-                  color={Colors.primary}
+                  name="alert-circle"
+                  size={32}
+                  color={Colors.warning}
+                  style={{ alignSelf: 'center', marginBottom: Spacing.sm }}
                 />
-              </View>
-
-              {/* Phase 6 Milestone Notice */}
-              <Text style={styles.placeholderTitle}>Phase 5 Completed</Text>
-              <View style={styles.engineNoticeBanner}>
-                <Text style={styles.engineNoticeText}>
-                  Demo transaction engine will be implemented in Phase 6.
+                <Text style={styles.confirmWarningTitle}>
+                  DEMO SIMULATION ONLY
+                </Text>
+                <Text style={styles.confirmWarningText}>
+                  Nothing will be transferred.{'\n'}
+                  No bank or UPI service is connected.{'\n'}
+                  This will update your local demo wallet only.
                 </Text>
               </View>
 
-              {/* Strict Non-Execution Disclosures */}
-              <View style={styles.placeholderCard}>
-                <Text style={styles.placeholderCardHeading}>
-                  Staged Demo Transfer Summary
+              {/* Transfer Summary */}
+              <View style={styles.confirmSummaryCard}>
+                <Text style={styles.confirmSummaryHeading}>
+                  Simulated Transaction Summary
                 </Text>
 
-                <View style={styles.placeholderRow}>
-                  <Text style={styles.placeholderLabel}>Recipient:</Text>
-                  <Text style={styles.placeholderValue}>{recipient.name}</Text>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Recipient</Text>
+                  <Text style={styles.summaryValue}>{recipient.name}</Text>
                 </View>
 
-                <View style={styles.placeholderRow}>
-                  <Text style={styles.placeholderLabel}>Masked Phone:</Text>
-                  <Text style={styles.placeholderValue}>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Masked Phone</Text>
+                  <Text style={styles.summaryValue}>
                     {maskPhoneNumber(activePhone.formattedNumber)}
                   </Text>
                 </View>
 
-                <View style={styles.placeholderRow}>
-                  <Text style={styles.placeholderLabel}>Staged Amount:</Text>
-                  <Text style={styles.placeholderValue}>
-                    ₹
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Amount to Deduct</Text>
+                  <Text style={[styles.summaryValue, { color: Colors.danger }]}>
+                    - ₹
                     {parsedAmount.toLocaleString('en-IN', {
                       minimumFractionDigits: 2,
                     })}
@@ -592,48 +652,204 @@ export function SendMoneyScreen({
                 </View>
 
                 {note.trim().length > 0 && (
-                  <View style={styles.placeholderRow}>
-                    <Text style={styles.placeholderLabel}>Note:</Text>
-                    <Text style={styles.placeholderValue}>{note}</Text>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Note</Text>
+                    <Text style={styles.summaryValue}>{note}</Text>
                   </View>
                 )}
 
-                <View style={styles.placeholderDivider} />
+                <View style={styles.detailDivider} />
 
-                <View style={styles.integrityItem}>
-                  <Ionicons
-                    name="checkmark-circle-outline"
-                    size={18}
-                    color={Colors.success}
-                  />
-                  <Text style={styles.integrityText}>
-                    Zero real money or bank accounts accessed.
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Current Demo Balance</Text>
+                  <Text style={styles.summaryValue}>
+                    ₹
+                    {currentBalance.toLocaleString('en-IN', {
+                      minimumFractionDigits: 2,
+                    })}
                   </Text>
                 </View>
-                <View style={styles.integrityItem}>
-                  <Ionicons
-                    name="checkmark-circle-outline"
-                    size={18}
-                    color={Colors.success}
-                  />
-                  <Text style={styles.integrityText}>
-                    No funds deducted from local demo wallet.
-                  </Text>
-                </View>
-                <View style={styles.integrityItem}>
-                  <Ionicons
-                    name="checkmark-circle-outline"
-                    size={18}
-                    color={Colors.success}
-                  />
-                  <Text style={styles.integrityText}>
-                    No fake receipt or deceptive confirmation generated.
+
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Projected Balance</Text>
+                  <Text
+                    style={[
+                      styles.summaryValue,
+                      {
+                        color:
+                          currentBalance - parsedAmount < 0
+                            ? Colors.danger
+                            : Colors.success,
+                      },
+                    ]}>
+                    ₹
+                    {Math.max(0, currentBalance - parsedAmount).toLocaleString(
+                      'en-IN',
+                      { minimumFractionDigits: 2 }
+                    )}
                   </Text>
                 </View>
               </View>
+
+              {/* Insufficient Balance Error (if any) */}
+              {errorMessage && (
+                <View style={styles.errorBox}>
+                  <Ionicons name="close-circle" size={20} color={Colors.danger} />
+                  <Text style={styles.errorText}>{errorMessage}</Text>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Confirmation Actions */}
+            <View style={styles.confirmBottomBar}>
+              <TouchableOpacity
+                style={[
+                  styles.confirmExecuteBtn,
+                  (isProcessing || parsedAmount > currentBalance) &&
+                    styles.confirmExecuteBtnDisabled,
+                ]}
+                disabled={isProcessing || parsedAmount > currentBalance}
+                onPress={handleExecuteTransfer}
+                activeOpacity={0.8}
+                accessibilityLabel="Confirm Demo Transfer">
+                {isProcessing ? (
+                  <ActivityIndicator size="small" color={Colors.textInverse} />
+                ) : (
+                  <>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={20}
+                      color={Colors.textInverse}
+                    />
+                    <Text style={styles.confirmExecuteBtnText}>
+                      Confirm Demo Transfer
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                disabled={isProcessing}
+                onPress={() => setCurrentStep('review')}
+                activeOpacity={0.7}
+                accessibilityLabel="Cancel transfer">
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* ================= STEP 4: COMPLETED RESULT SCREEN ================= */}
+        {currentStep === 'result' && completedTxn && (
+          <View style={styles.screenContainer}>
+            {/* Header */}
+            <View style={styles.navHeader}>
+              <View style={{ width: 40 }} />
+              <Text style={styles.navTitle}>Transfer Result</Text>
+              <DemoBadge />
             </View>
 
-            {/* Bottom Actions */}
+            <ScrollView
+              style={styles.reviewScroll}
+              contentContainerStyle={styles.resultScrollContent}>
+              {/* Success Badge */}
+              <View style={styles.resultBadgeContainer}>
+                <View style={styles.resultCheckCircle}>
+                  <Ionicons name="checkmark" size={48} color={Colors.brandNu} />
+                </View>
+                <Text style={styles.resultSuccessTitle}>
+                  DEMO TRANSACTION COMPLETED
+                </Text>
+              </View>
+
+              {/* Watermark Banner */}
+              <View style={styles.watermarkBanner}>
+                <Ionicons
+                  name="shield-checkmark"
+                  size={18}
+                  color={Colors.primary}
+                />
+                <Text style={styles.watermarkText}>
+                  SIMULATED — NO REAL MONEY TRANSFERRED
+                </Text>
+              </View>
+
+              {/* Completed Details Card */}
+              <View style={styles.resultDetailsCard}>
+                <View style={styles.resultAmountRow}>
+                  <Text style={styles.resultAmountSymbol}>₹</Text>
+                  <Text style={styles.resultAmountText}>
+                    {completedTxn.amount.toLocaleString('en-IN', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </Text>
+                </View>
+
+                <Text style={styles.resultToText}>
+                  Sent to {completedTxn.recipient_name}
+                </Text>
+                <Text style={styles.resultPhoneText}>
+                  {completedTxn.recipient_phone_masked}
+                </Text>
+
+                <View style={styles.detailDivider} />
+
+                <View style={styles.resultRow}>
+                  <Text style={styles.resultLabel}>Simulated Time</Text>
+                  <Text style={styles.resultValue}>
+                    {completedTxn.created_at_formatted}
+                  </Text>
+                </View>
+
+                {completedTxn.note.trim().length > 0 && (
+                  <View style={styles.resultRow}>
+                    <Text style={styles.resultLabel}>Note</Text>
+                    <Text style={styles.resultValue}>{completedTxn.note}</Text>
+                  </View>
+                )}
+
+                <View style={styles.resultRow}>
+                  <Text style={styles.resultLabel}>Updated Demo Balance</Text>
+                  <Text style={[styles.resultValue, { color: Colors.primary }]}>
+                    ₹
+                    {postTxnBalance.toLocaleString('en-IN', {
+                      minimumFractionDigits: 2,
+                    })}
+                  </Text>
+                </View>
+
+                <View style={styles.detailDivider} />
+
+                {/* Local Demo Record ID Box */}
+                <View style={styles.recordIdContainer}>
+                  <Text style={styles.recordIdLabel}>
+                    LOCAL DEMO RECORD ID:
+                  </Text>
+                  <Text style={styles.recordIdText}>{completedTxn.id}</Text>
+                  <Text style={styles.recordIdDisclaimer}>
+                    Local demo record ID — not a payment reference.
+                  </Text>
+                </View>
+              </View>
+
+              {/* Educational Disclaimer */}
+              <View style={styles.safeNoticeCard}>
+                <Ionicons
+                  name="information-circle-outline"
+                  size={20}
+                  color={Colors.textTertiary}
+                />
+                <Text style={styles.safeNoticeText}>
+                  This record is stored exclusively in your device's local SQLite
+                  database. No banks, NPCI, or financial entities received this
+                  data.
+                </Text>
+              </View>
+            </ScrollView>
+
+            {/* Bottom Done Action */}
             <View style={styles.bottomBar}>
               <TouchableOpacity
                 style={styles.continueButton}
@@ -1057,6 +1273,7 @@ const styles = StyleSheet.create({
   detailDivider: {
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    marginVertical: 4,
   },
   disclaimerCard: {
     flexDirection: 'row',
@@ -1100,89 +1317,262 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
 
-  // Placeholder Screen Styles
-  placeholderContainer: {
-    flex: 1,
-    alignItems: 'center',
-    padding: Spacing.xl,
-    justifyContent: 'center',
+  // Confirmation Step Styles
+  confirmContent: {
+    padding: Spacing.lg,
+    gap: Spacing.md,
   },
-  placeholderIconContainer: {
+  confirmWarningBox: {
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 1.5,
+    borderColor: Colors.warning,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    alignItems: 'center',
+  },
+  confirmWarningTitle: {
+    ...Typography.title2,
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.warning,
+    marginBottom: 6,
+  },
+  confirmWarningText: {
+    ...Typography.body,
+    fontSize: 14,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  confirmSummaryCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.lg,
+    gap: 8,
+  },
+  confirmSummaryHeading: {
+    ...Typography.title2,
+    fontSize: 16,
+    color: Colors.textPrimary,
+    marginBottom: 6,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  summaryLabel: {
+    ...Typography.caption,
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  summaryValue: {
+    ...Typography.bodyBold,
+    fontSize: 14,
+    color: Colors.textPrimary,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: Colors.danger,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    gap: 8,
+  },
+  errorText: {
+    ...Typography.caption,
+    fontSize: 13,
+    color: Colors.danger,
+    flex: 1,
+  },
+  confirmBottomBar: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.surfaceSubtle,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    gap: 10,
+  },
+  confirmExecuteBtn: {
+    flexDirection: 'row',
+    height: 52,
+    borderRadius: BorderRadius.xl,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  confirmExecuteBtnDisabled: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  confirmExecuteBtnText: {
+    ...Typography.bodyBold,
+    fontSize: 16,
+    color: Colors.textInverse,
+    fontWeight: '800',
+  },
+  cancelBtn: {
+    height: 44,
+    borderRadius: BorderRadius.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  cancelBtnText: {
+    ...Typography.body,
+    fontSize: 15,
+    color: Colors.textSecondary,
+  },
+
+  // Completed Result Screen Styles
+  resultScrollContent: {
+    padding: Spacing.lg,
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  resultBadgeContainer: {
+    alignItems: 'center',
+    marginVertical: Spacing.sm,
+  },
+  resultCheckCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(0, 210, 255, 0.12)',
+    backgroundColor: 'rgba(16, 231, 195, 0.15)',
     borderWidth: 2,
-    borderColor: Colors.primary,
+    borderColor: Colors.brandNu,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.md,
   },
-  placeholderTitle: {
+  resultSuccessTitle: {
     ...Typography.title1,
-    fontSize: 22,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.brandNu,
+    letterSpacing: 0.5,
   },
-  engineNoticeBanner: {
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-    borderWidth: 1,
-    borderColor: Colors.secondary,
-    borderRadius: BorderRadius.lg,
+  watermarkBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 210, 255, 0.12)',
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    borderRadius: BorderRadius.full,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    marginBottom: Spacing.lg,
+    paddingVertical: 8,
+    gap: 8,
   },
-  engineNoticeText: {
-    ...Typography.bodyBold,
-    fontSize: 14,
-    color: Colors.secondary,
-    textAlign: 'center',
+  watermarkText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.primary,
+    letterSpacing: 0.6,
   },
-  placeholderCard: {
+  resultDetailsCard: {
     width: '100%',
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
     borderColor: Colors.border,
     padding: Spacing.lg,
-    gap: 10,
-  },
-  placeholderCardHeading: {
-    ...Typography.bodyBold,
-    fontSize: 15,
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  placeholderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  placeholderLabel: {
-    ...Typography.caption,
-    fontSize: 13,
-    color: Colors.textSecondary,
-  },
-  placeholderValue: {
-    ...Typography.bodyBold,
-    fontSize: 13,
-    color: Colors.textPrimary,
-  },
-  placeholderDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    marginVertical: 4,
-  },
-  integrityItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  integrityText: {
+  resultAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+  },
+  resultAmountSymbol: {
+    ...Typography.title1,
+    fontSize: 28,
+    color: Colors.textPrimary,
+    marginRight: 4,
+  },
+  resultAmountText: {
+    ...Typography.hero,
+    fontSize: 40,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+  },
+  resultToText: {
+    ...Typography.title2,
+    fontSize: 16,
+    color: Colors.textPrimary,
+    marginTop: 2,
+  },
+  resultPhoneText: {
+    ...Typography.caption,
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
+  },
+  resultRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  resultLabel: {
+    ...Typography.caption,
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  resultValue: {
+    ...Typography.bodyBold,
+    fontSize: 13,
+    color: Colors.textPrimary,
+  },
+  recordIdContainer: {
+    width: '100%',
+    backgroundColor: Colors.surfaceSubtle,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+    alignItems: 'center',
+  },
+  recordIdLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.textTertiary,
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  recordIdText: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontWeight: '700',
+    color: Colors.primary,
+    marginBottom: 4,
+  },
+  recordIdDisclaimer: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  safeNoticeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    gap: 8,
+  },
+  safeNoticeText: {
     ...Typography.caption,
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: Colors.textTertiary,
     flex: 1,
+    lineHeight: 16,
   },
 
   // Selector Sheet Modal
