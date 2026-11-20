@@ -13,6 +13,7 @@ import { ContactsScreen } from './ContactsScreen';
 import { RecipientPreviewModal } from './RecipientPreviewModal';
 import { SendMoneyScreen } from './SendMoneyScreen';
 import { QRScannerModal } from './QRScannerModal';
+import { BankTransferModal } from './BankTransferModal';
 
 import {
   USER_PROFILE,
@@ -69,6 +70,9 @@ export function HomeDashboard({
 
   // QR Scanner state (Phase 7)
   const [showQRScanner, setShowQRScanner] = useState(false);
+
+  // Bank Transfer state (Phase 8)
+  const [showBankTransfer, setShowBankTransfer] = useState(false);
 
   // Device Contacts cached for horizontal preview if permission is granted
   const [deviceContacts, setDeviceContacts] = useState<AppContact[]>([]);
@@ -132,6 +136,12 @@ export function HomeDashboard({
     // Intercept "Scan any QR" quick action to open Camera Scanner (Phase 7)
     if (action.id === 'scan_qr') {
       setShowQRScanner(true);
+      return;
+    }
+
+    // Intercept "Bank transfer" quick action to open Bank Transfer Flow (Phase 8)
+    if (action.id === 'bank_transfer') {
+      setShowBankTransfer(true);
       return;
     }
 
@@ -336,6 +346,21 @@ export function HomeDashboard({
       <QRScannerModal
         visible={showQRScanner}
         onClose={() => setShowQRScanner(false)}
+      />
+
+      {/* Demo Bank Transfer Modal (Phase 8) */}
+      <BankTransferModal
+        visible={showBankTransfer}
+        currentBalance={demoBalance}
+        onClose={() => {
+          setShowBankTransfer(false);
+          refreshDatabaseData();
+        }}
+        onTransferSuccess={(newBal) => {
+          setDemoBalance(newBal);
+          onBalanceChange?.(newBal);
+          refreshDatabaseData();
+        }}
       />
 
       {/* Action Placeholder Modal */}
