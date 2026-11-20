@@ -12,6 +12,7 @@ import { ProfileModal } from './ProfileModal';
 import { ContactsScreen } from './ContactsScreen';
 import { RecipientPreviewModal } from './RecipientPreviewModal';
 import { SendMoneyScreen } from './SendMoneyScreen';
+import { QRScannerModal } from './QRScannerModal';
 
 import {
   USER_PROFILE,
@@ -65,6 +66,9 @@ export function HomeDashboard({
   const [showSendMoney, setShowSendMoney] = useState(false);
   const [sendMoneyRecipient, setSendMoneyRecipient] = useState<AppContact | null>(null);
   const [sendMoneyPhone, setSendMoneyPhone] = useState<ContactPhoneNumber | null>(null);
+
+  // QR Scanner state (Phase 7)
+  const [showQRScanner, setShowQRScanner] = useState(false);
 
   // Device Contacts cached for horizontal preview if permission is granted
   const [deviceContacts, setDeviceContacts] = useState<AppContact[]>([]);
@@ -122,6 +126,12 @@ export function HomeDashboard({
     // Intercept "Pay anyone" quick action to open Contacts directly
     if (action.id === 'pay_anyone') {
       setShowContactsScreen(true);
+      return;
+    }
+
+    // Intercept "Scan any QR" quick action to open Camera Scanner (Phase 7)
+    if (action.id === 'scan_qr') {
+      setShowQRScanner(true);
       return;
     }
 
@@ -320,6 +330,12 @@ export function HomeDashboard({
           onBalanceChange?.(newBal);
           refreshDatabaseData();
         }}
+      />
+
+      {/* QR Code Camera Scanner Modal (Phase 7) */}
+      <QRScannerModal
+        visible={showQRScanner}
+        onClose={() => setShowQRScanner(false)}
       />
 
       {/* Action Placeholder Modal */}

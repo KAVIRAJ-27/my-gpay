@@ -41,6 +41,12 @@
           "contactsPermission": "Allow G Pay.nu to access your contacts to simulate paying anyone."
         }
       ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow G Pay.nu to access your camera to scan QR codes for demo simulation."
+        }
+      ],
       "expo-sqlite"
     ],
     "experiments": {
