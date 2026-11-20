@@ -6,11 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius, Typography, CommonStyles } from '@/theme';
-import { USER_PROFILE } from '@/data/mockData';
-import { DemoBadge } from '../DemoBadge';
+import { useTheme } from '@/context/ThemeContext';
+import { MoneyHeaderArt } from '../common/MoneyHeaderArt';
+import { USER_PROFILE, DEMO_ACTIVITIES, DemoActivity } from '@/data/mockData';
 
 interface MoneyTabProps {
   balance?: number;
@@ -23,424 +24,684 @@ export function MoneyTab({
   onAddFunds,
   onResetWallet,
 }: MoneyTabProps) {
-  const [isBalanceVisible, setIsBalanceVisible] = useState(true);
+  const { colors } = useTheme();
+
+  // State for item detail modals
+  const [selectedTxn, setSelectedTxn] = useState<DemoActivity | null>(null);
+  const [cibilScoreVisible, setCibilScoreVisible] = useState(false);
+  const [loanModalVisible, setLoanModalVisible] = useState(false);
+  const [flexCardModalVisible, setFlexCardModalVisible] = useState(false);
+  const [showOverflowMenu, setShowOverflowMenu] = useState(false);
 
   const formattedBalance = balance.toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
-  const handleResetPress = () => {
-    Alert.alert(
-      'Reset Demo Wallet?',
-      'This will reset your local simulated balance back to the initial prototype state (₹24,850.00). This affects local SQLite demo storage only.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset Wallet',
-          style: 'destructive',
-          onPress: () => onResetWallet?.(),
-        },
-      ]
-    );
-  };
-
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}>
-      {/* Header Row */}
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.title}>Money & Accounts</Text>
-          <Text style={styles.subtitle}>
-            Offline simulation accounts • No real financial connection
-          </Text>
-        </View>
-        <DemoBadge />
-      </View>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}>
 
-      {/* Main Demo Account Card */}
-      <View style={[CommonStyles.cardElevated, styles.accountCard]}>
-        <View style={styles.cardHeader}>
-          <View style={styles.bankBadge}>
-            <Ionicons name="business" size={18} color={Colors.primary} />
-            <Text style={styles.bankName}>{USER_PROFILE.bankName}</Text>
+        {/* 1. TOP HEADER ART (MOON, RIVER, LIT SKYSCRAPERS, PERSON ON HILL) */}
+        <View style={styles.headerArtWrapper}>
+          <MoneyHeaderArt />
+          {/* Three-Dot Overflow Menu Button */}
+          <TouchableOpacity
+            style={styles.overflowBtn}
+            activeOpacity={0.7}
+            onPress={() => setShowOverflowMenu(true)}>
+            <Ionicons name="ellipsis-vertical" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* 2. TITLE: "Money" */}
+        <View style={styles.titleSection}>
+          <Text style={styles.screenTitle}>Money</Text>
+        </View>
+
+        {/* 3. BANK ACCOUNT ROW (INDIAN BANK ••••3526) */}
+        <View style={styles.accountCard}>
+          <View style={styles.bankLeft}>
+            {/* Indian Bank Circular Emblem */}
+            <View style={styles.bankLogoBadge}>
+              <Ionicons name="business" size={20} color="#FFFFFF" />
+            </View>
+            <View style={styles.bankInfo}>
+              <Text style={styles.bankName}>{USER_PROFILE.bankName}</Text>
+              <Text style={styles.accountNumber}>{USER_PROFILE.accountNumberMasked}</Text>
+              <Text style={styles.accountType}>Savings account</Text>
+            </View>
           </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.eyeBtn}
-              onPress={() => setIsBalanceVisible(!isBalanceVisible)}
-              accessibilityLabel={isBalanceVisible ? 'Hide balance' : 'Show balance'}>
-              <Ionicons
-                name={isBalanceVisible ? 'eye-outline' : 'eye-off-outline'}
-                size={18}
-                color={Colors.textSecondary}
-              />
-            </TouchableOpacity>
-            <View style={styles.statusPill}>
-              <View style={styles.dot} />
-              <Text style={styles.statusText}>Simulated</Text>
+          <TouchableOpacity
+            style={styles.checkBalanceBtn}
+            activeOpacity={0.7}
+            onPress={onAddFunds}>
+            <Text style={styles.checkBalanceText}>Check balance</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 4. CIBIL SCORE ROW */}
+        <View style={styles.cibilRow}>
+          <View style={styles.cibilLeft}>
+            <View style={styles.cibilIconBadge}>
+              <Ionicons name="speedometer-outline" size={22} color="#81C995" />
+            </View>
+            <View style={styles.cibilInfo}>
+              <Text style={styles.cibilTitle}>CIBIL score</Text>
+              <Text style={styles.cibilSubtitle}>Check for free, instantly</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.cibilCheckBtn}
+            activeOpacity={0.7}
+            onPress={() => setCibilScoreVisible(true)}>
+            <Text style={styles.checkBalanceText}>Check</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 5. "CREDIT FOR YOU" SECTION (DUAL CARDS) */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Credit for you</Text>
+        </View>
+
+        <View style={styles.dualCardsRow}>
+          {/* Card 1: Flex by Google Pay */}
+          <TouchableOpacity
+            style={[styles.creditCardBox, { backgroundColor: colors.surface }]}
+            activeOpacity={0.8}
+            onPress={() => setFlexCardModalVisible(true)}>
+            <View style={styles.cardTopRow}>
+              <View style={styles.cardIconCircle}>
+                <Ionicons name="card-outline" size={18} color="#FBBC04" />
+              </View>
+              <View style={styles.newBadge}>
+                <Text style={styles.newBadgeText}>New</Text>
+              </View>
+            </View>
+            <Text style={styles.creditCardTitle}>Flex by Google Pay</Text>
+            <Text style={styles.creditCardSub}>UPI credit card made simple</Text>
+            <Text style={styles.checkDetailsLink}>Check details</Text>
+          </TouchableOpacity>
+
+          {/* Card 2: Personal Loan */}
+          <TouchableOpacity
+            style={[styles.creditCardBox, { backgroundColor: colors.surface }]}
+            activeOpacity={0.8}
+            onPress={() => setLoanModalVisible(true)}>
+            <View style={styles.cardTopRow}>
+              <View style={[styles.cardIconCircle, { backgroundColor: 'rgba(251, 188, 4, 0.15)' }]}>
+                <Ionicons name="wallet-outline" size={18} color="#FBBC04" />
+              </View>
+            </View>
+            <Text style={styles.creditCardTitle}>Personal loan</Text>
+            <Text style={styles.creditCardSub}>Up to ₹40 lakh, instant approval</Text>
+            <Text style={styles.checkDetailsLink}>Check details</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 6. "TRANSACTION HISTORY" SECTION */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Transaction history</Text>
+          <TouchableOpacity activeOpacity={0.7} onPress={onAddFunds}>
+            <Text style={styles.seeAllLink}>See all &gt;</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Transaction Items matching Screenshot 3 */}
+        <View style={styles.txnListContainer}>
+          {DEMO_ACTIVITIES.map((txn, index) => {
+            const isLast = index === DEMO_ACTIVITIES.length - 1;
+            const avatarColor =
+              index === 0 ? '#8E24AA' : index === 1 ? '#E91E63' : index === 2 ? '#1976D2' : index === 3 ? '#E50914' : '#8E24AA';
+            const initial = txn.title[0].toUpperCase();
+
+            return (
+              <TouchableOpacity
+                key={txn.id}
+                style={[styles.txnRow, !isLast && styles.txnBorder]}
+                activeOpacity={0.7}
+                onPress={() => setSelectedTxn(txn)}>
+                <View style={[styles.txnAvatar, { backgroundColor: avatarColor }]}>
+                  <Text style={styles.txnAvatarText}>{initial}</Text>
+                </View>
+                <View style={styles.txnDetails}>
+                  <Text style={styles.txnTitle}>{txn.title}</Text>
+                  <Text style={styles.txnDate}>{txn.timestamp}</Text>
+                </View>
+                <Text style={styles.txnAmount}>₹{txn.amount}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+      </ScrollView>
+
+      {/* TRANSACTION DETAIL MODAL */}
+      <Modal
+        visible={selectedTxn !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedTxn(null)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeading}>Transaction Details</Text>
+              <TouchableOpacity onPress={() => setSelectedTxn(null)}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            {selectedTxn && (
+              <View style={styles.modalBody}>
+                <View style={[styles.txnAvatarLarge, { backgroundColor: '#8E24AA' }]}>
+                  <Text style={styles.txnAvatarLargeText}>{selectedTxn.title[0]}</Text>
+                </View>
+                <Text style={styles.modalRecipientName}>{selectedTxn.title}</Text>
+                <Text style={styles.modalAmountBig}>₹{selectedTxn.amount}.00</Text>
+                <View style={styles.modalBadge}>
+                  <Ionicons name="checkmark-circle" size={14} color="#81C995" />
+                  <Text style={styles.modalBadgeText}>Completed • Simulated</Text>
+                </View>
+                <View style={styles.modalMetaRow}>
+                  <Text style={styles.modalMetaLabel}>Date &amp; Time</Text>
+                  <Text style={styles.modalMetaValue}>{selectedTxn.timestamp}, 2026</Text>
+                </View>
+                <View style={styles.modalMetaRow}>
+                  <Text style={styles.modalMetaLabel}>From</Text>
+                  <Text style={styles.modalMetaValue}>Indian Bank ••••3526</Text>
+                </View>
+                <View style={styles.modalMetaRow}>
+                  <Text style={styles.modalMetaLabel}>UPI Transaction ID</Text>
+                  <Text style={[styles.modalMetaValue, { color: colors.primary }]}>DEMO_TXN_{selectedTxn.id.toUpperCase()}</Text>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* CIBIL SCORE MODAL */}
+      <Modal
+        visible={cibilScoreVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCibilScoreVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeading}>Your CIBIL Score</Text>
+              <TouchableOpacity onPress={() => setCibilScoreVisible(false)}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.cibilModalContent}>
+              <View style={styles.scoreCircle}>
+                <Text style={styles.scoreNumber}>785</Text>
+                <Text style={styles.scoreRating}>Excellent</Text>
+              </View>
+              <Text style={styles.scoreDesc}>
+                Your credit score is in the top tier! You are eligible for the best pre-approved credit cards and loans with zero processing fees.
+              </Text>
             </View>
           </View>
         </View>
+      </Modal>
 
-        {/* Account Details Specs */}
-        <View style={styles.specsGrid}>
-          <View style={styles.specItem}>
-            <Text style={styles.specLabel}>Account Number</Text>
-            <Text style={styles.specValue}>{USER_PROFILE.accountNumberMasked}</Text>
-          </View>
-          <View style={styles.specItem}>
-            <Text style={styles.specLabel}>IFSC Code</Text>
-            <Text style={styles.specValue}>UTIB0000214</Text>
-          </View>
-          <View style={styles.specItem}>
-            <Text style={styles.specLabel}>UPI ID</Text>
-            <Text style={styles.specValue}>{USER_PROFILE.upiId}</Text>
-          </View>
-          <View style={styles.specItem}>
-            <Text style={styles.specLabel}>Branch</Text>
-            <Text style={styles.specValue}>Tech Park Demo Branch</Text>
-          </View>
-        </View>
-
-        {/* Balance Display */}
-        <View style={styles.balanceRow}>
-          <Text style={styles.balanceLabel}>Simulated SQLite Balance</Text>
-          <Text style={styles.balanceValue}>
-            {isBalanceVisible ? `₹${formattedBalance}` : '₹ ••••••'}
-          </Text>
-        </View>
-
-        {/* Action Buttons */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={[CommonStyles.primaryButton, styles.addFundsBtn]}
-            activeOpacity={0.8}
-            onPress={onAddFunds}>
-            <Ionicons
-              name="add-circle-outline"
-              size={18}
-              color={Colors.textInverse}
-              style={{ marginRight: 6 }}
-            />
-            <Text style={styles.addFundsBtnText}>Manage & Top Up</Text>
-          </TouchableOpacity>
-
-          {onResetWallet && (
+      {/* THREE-DOT OVERFLOW MENU MODAL */}
+      <Modal
+        visible={showOverflowMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowOverflowMenu(false)}>
+        <TouchableOpacity
+          style={styles.menuBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowOverflowMenu(false)}>
+          <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
             <TouchableOpacity
-              style={styles.resetBtn}
-              activeOpacity={0.7}
-              onPress={handleResetPress}>
-              <Ionicons
-                name="refresh-outline"
-                size={16}
-                color={Colors.warning}
-                style={{ marginRight: 4 }}
-              />
-              <Text style={styles.resetBtnText}>Reset</Text>
+              style={styles.menuItem}
+              onPress={() => {
+                setShowOverflowMenu(false);
+                Alert.alert('Money & Accounts', 'G Pay.nu simulated accounts manager.');
+              }}>
+              <Text style={styles.menuItemText}>Get help</Text>
             </TouchableOpacity>
-          )}
-        </View>
-      </View>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowOverflowMenu(false);
+                Alert.alert('Send Feedback', 'Feedback simulation active.');
+              }}>
+              <Text style={styles.menuItemText}>Send feedback</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
-      {/* Linked Simulated Cards */}
-      <Text style={styles.sectionHeader}>Simulated Payment Cards</Text>
-      <View style={[CommonStyles.card, styles.methodsCard]}>
-        {/* Card 1: Virtual Credit */}
-        <View style={styles.methodRow}>
-          <View style={[styles.methodIcon, { backgroundColor: 'rgba(99, 102, 241, 0.15)' }]}>
-            <Ionicons name="card" size={20} color={Colors.secondary} />
-          </View>
-          <View style={styles.methodDetails}>
-            <Text style={styles.methodTitle}>Nu Platinum Virtual Credit</Text>
-            <Text style={styles.methodSub}>•••• 9021 • Exp: 11/28 • Visa</Text>
-          </View>
-          <View style={styles.limitTag}>
-            <Text style={styles.limitTagText}>Limit ₹1,50,000</Text>
-          </View>
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* Card 2: Titanium Debit */}
-        <View style={styles.methodRow}>
-          <View style={[styles.methodIcon, { backgroundColor: 'rgba(0, 210, 255, 0.15)' }]}>
-            <Ionicons name="card-outline" size={20} color={Colors.primary} />
-          </View>
-          <View style={styles.methodDetails}>
-            <Text style={styles.methodTitle}>Axis Titanium Demo Debit</Text>
-            <Text style={styles.methodSub}>•••• 5842 • Exp: 08/29 • RuPay</Text>
-          </View>
-          <View style={[styles.limitTag, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
-            <Text style={[styles.limitTagText, { color: Colors.success }]}>Linked</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Safety & Limits Card */}
-      <Text style={styles.sectionHeader}>Simulator Limits & Guardrails</Text>
-      <View style={[CommonStyles.card, styles.limitsCard]}>
-        <View style={styles.limitRow}>
-          <Ionicons name="shield-checkmark-outline" size={18} color={Colors.primary} />
-          <View style={{ flex: 1, marginLeft: 8 }}>
-            <Text style={styles.limitTitle}>Daily Simulated Transfer Cap</Text>
-            <Text style={styles.limitDesc}>₹1,00,000.00 max per day across all contacts</Text>
+      {/* FLEX CARD & PERSONAL LOAN SIMULATION MODALS */}
+      <Modal
+        visible={loanModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setLoanModalVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeading}>Personal Loan</Text>
+              <TouchableOpacity onPress={() => setLoanModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.cibilModalContent}>
+              <Ionicons name="wallet-outline" size={48} color="#FBBC04" style={{ marginBottom: 12 }} />
+              <Text style={styles.scoreNumber}>₹4,00,000</Text>
+              <Text style={styles.scoreRating}>Pre-Approved Credit Limit</Text>
+              <Text style={styles.scoreDesc}>
+                Simulated pre-approved personal loan at 10.49% p.a. Zero documentation required for demo testing.
+              </Text>
+            </View>
           </View>
         </View>
+      </Modal>
 
-        <View style={styles.divider} />
-
-        <View style={styles.limitRow}>
-          <Ionicons name="lock-closed-outline" size={18} color={Colors.brandNu} />
-          <View style={{ flex: 1, marginLeft: 8 }}>
-            <Text style={styles.limitTitle}>100% Offline SQLite Encryption</Text>
-            <Text style={styles.limitDesc}>Zero financial network connectivity or UPI API integration</Text>
+      <Modal
+        visible={flexCardModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setFlexCardModalVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeading}>Flex by Google Pay</Text>
+              <TouchableOpacity onPress={() => setFlexCardModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.cibilModalContent}>
+              <Ionicons name="card" size={48} color="#1A73E8" style={{ marginBottom: 12 }} />
+              <Text style={styles.scoreNumber}>RuPay Virtual Card</Text>
+              <Text style={styles.scoreRating}>UPI Linked Credit</Text>
+              <Text style={styles.scoreDesc}>
+                Link your virtual credit card to scan and pay at any UPI QR code instantly with 50-day interest-free period.
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
+      </Modal>
 
-      {/* Watermark Banner */}
-      <View style={styles.watermarkBox}>
-        <Ionicons name="information-circle-outline" size={16} color={Colors.warning} />
-        <Text style={styles.watermarkText}>
-          INDEPENDENT DEMO WALLET SIMULATOR • FOR DEMONSTRATION PURPOSES ONLY
-        </Text>
-      </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: Spacing.screenPadding,
+    flex: 1,
+  },
+  scrollContent: {
     paddingBottom: 40,
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.md,
+  headerArtWrapper: {
+    position: 'relative',
+    width: '100%',
   },
-  title: {
-    ...Typography.title1,
-    color: Colors.textPrimary,
+  overflowBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    padding: 8,
+    zIndex: 10,
   },
-  subtitle: {
-    ...Typography.caption,
-    color: Colors.textTertiary,
-    marginTop: 2,
+  titleSection: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
+  screenTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
   accountCard: {
-    padding: Spacing.lg,
-    backgroundColor: '#0F1626',
-    borderWidth: 1.5,
-    borderColor: '#1F2C4C',
-    borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
-  cardHeader: {
+  bankLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  bankLogoBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFB300', // Yellow badge matching Indian Bank in screenshot
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  bankInfo: {
+    flex: 1,
+  },
+  bankName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  accountNumber: {
+    fontSize: 14,
+    color: '#E8EAED',
+    fontWeight: '500',
+  },
+  accountType: {
+    fontSize: 12,
+    color: '#9AA0A6',
+    marginTop: 2,
+  },
+  checkBalanceBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  checkBalanceText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8AB4F8',
+  },
+  cibilRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 4,
+  },
+  cibilLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  cibilIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#2A2C34',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  cibilInfo: {
+    flex: 1,
+  },
+  cibilTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  cibilSubtitle: {
+    fontSize: 12,
+    color: '#9AA0A6',
+  },
+  cibilCheckBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    paddingHorizontal: 16,
+    marginTop: 24,
+    marginBottom: 14,
   },
-  bankBadge: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  seeAllLink: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#8AB4F8',
+  },
+  dualCardsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    paddingHorizontal: 16,
+    gap: 12,
   },
-  bankName: {
-    ...Typography.title2,
-    fontSize: 16,
-    color: Colors.textPrimary,
+  creditCardBox: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  headerActions: {
+  cardTopRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    marginBottom: 12,
   },
-  eyeBtn: {
-    padding: 4,
-  },
-  statusPill: {
-    flexDirection: 'row',
+  cardIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(251, 188, 4, 0.15)',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 210, 255, 0.1)',
+    justifyContent: 'center',
+  },
+  newBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: BorderRadius.full,
-    gap: 5,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: '#004A77',
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.primary,
-  },
-  statusText: {
+  newBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.primary,
+    color: '#C2E7FF',
   },
-  specsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: Spacing.md,
-    backgroundColor: Colors.surfaceSubtle,
-    padding: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-  },
-  specItem: {
-    width: '48%',
-  },
-  specLabel: {
-    fontSize: 11,
-    color: Colors.textTertiary,
-    marginBottom: 2,
-  },
-  specValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  balanceRow: {
-    backgroundColor: Colors.surface,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  balanceLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
+  creditCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
-  balanceValue: {
-    fontSize: 26,
-    color: Colors.primary,
-    fontWeight: '800',
+  creditCardSub: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: '#9AA0A6',
+    minHeight: 30,
   },
-  actionRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
+  checkDetailsLink: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#8AB4F8',
+    marginTop: 12,
   },
-  addFundsBtn: {
-    flex: 1,
-    height: 44,
+  txnListContainer: {
+    paddingHorizontal: 16,
   },
-  addFundsBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.textInverse,
-  },
-  resetBtn: {
+  txnRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 14,
+  },
+  txnBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  txnAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.md,
-    height: 44,
-    borderRadius: BorderRadius.xl,
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    marginRight: 14,
   },
-  resetBtnText: {
-    fontSize: 13,
+  txnAvatarText: {
+    fontSize: 18,
     fontWeight: '700',
-    color: Colors.warning,
+    color: '#FFFFFF',
   },
-  sectionHeader: {
+  txnDetails: {
+    flex: 1,
+  },
+  txnTitle: {
     fontSize: 15,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.md,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 3,
   },
-  methodsCard: {
-    padding: Spacing.none,
-    overflow: 'hidden',
-    marginBottom: Spacing.xl,
+  txnDate: {
+    fontSize: 12,
+    color: '#9AA0A6',
   },
-  methodRow: {
+  txnAmount: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: Spacing.md,
+    marginBottom: 16,
   },
-  methodIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
+  modalHeading: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  modalBody: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  txnAvatarLarge: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.md,
+    marginBottom: 10,
   },
-  methodDetails: {
-    flex: 1,
-  },
-  methodTitle: {
-    fontSize: 14,
+  txnAvatarLargeText: {
+    fontSize: 26,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
   },
-  methodSub: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: 2,
+  modalRecipientName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6,
   },
-  limitTag: {
-    backgroundColor: 'rgba(99, 102, 241, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: BorderRadius.sm,
+  modalAmountBig: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 10,
   },
-  limitTagText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.secondary,
-  },
-  limitsCard: {
-    padding: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
-  limitRow: {
+  modalBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(129, 201, 149, 0.15)',
+    gap: 6,
+    marginBottom: 20,
   },
-  limitTitle: {
+  modalBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#81C995',
+  },
+  modalMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  modalMetaLabel: {
+    fontSize: 13,
+    color: '#9AA0A6',
+  },
+  modalMetaValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
   },
-  limitDesc: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    marginTop: 2,
+  cibilModalContent: {
+    alignItems: 'center',
+    paddingVertical: 16,
   },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: 4,
-  },
-  watermarkBox: {
-    flexDirection: 'row',
+  scoreCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: '#81C995',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.2)',
+    marginBottom: 16,
   },
-  watermarkText: {
-    fontSize: 11,
+  scoreNumber: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  scoreRating: {
+    fontSize: 13,
     fontWeight: '700',
-    color: Colors.warning,
+    color: '#81C995',
+  },
+  scoreDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#9AA0A6',
+    textAlign: 'center',
+    paddingHorizontal: 16,
+  },
+  menuBackdrop: {
     flex: 1,
-    lineHeight: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    alignItems: 'flex-end',
+    paddingTop: 50,
+    paddingRight: 16,
+  },
+  menuCard: {
+    width: 160,
+    borderRadius: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  menuItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  menuItemText: {
+    fontSize: 14,
+    color: '#FFFFFF',
   },
 });

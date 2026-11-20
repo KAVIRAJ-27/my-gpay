@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, BorderRadius } from '@/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface BrandMarkProps {
   size?: number;
@@ -8,6 +9,7 @@ interface BrandMarkProps {
 }
 
 export function BrandMark({ size = 72, showGlow = true }: BrandMarkProps) {
+  const { colors } = useTheme();
   const containerSize = size;
   const radius = size * 0.28;
 
@@ -18,9 +20,11 @@ export function BrandMark({ size = 72, showGlow = true }: BrandMarkProps) {
           style={[
             styles.glowRing,
             {
-              width: containerSize + 16,
-              height: containerSize + 16,
-              borderRadius: (containerSize + 16) / 2,
+              width: containerSize + 12,
+              height: containerSize + 12,
+              borderRadius: (containerSize + 12) / 2,
+              backgroundColor: colors.primaryGlow,
+              borderColor: colors.borderLight,
             },
           ]}
         />
@@ -32,14 +36,16 @@ export function BrandMark({ size = 72, showGlow = true }: BrandMarkProps) {
             width: containerSize,
             height: containerSize,
             borderRadius: radius,
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            shadowColor: colors.primary,
           },
         ]}>
-        {/* Decorative inner gradient-style geometric accents */}
-        <View style={styles.topAccent} />
+        <View style={[styles.topAccent, { backgroundColor: colors.primary }]} />
         <View style={styles.contentRow}>
-          <Text style={[styles.letterG, { fontSize: size * 0.42 }]}>G</Text>
-          <Text style={[styles.dot, { fontSize: size * 0.28 }]}>•</Text>
-          <Text style={[styles.letterNu, { fontSize: size * 0.38 }]}>ν</Text>
+          <Text style={[styles.letterG, { fontSize: size * 0.42, color: colors.textPrimary }]}>G</Text>
+          <Text style={[styles.dot, { fontSize: size * 0.28, color: colors.warning }]}>•</Text>
+          <Text style={[styles.letterNu, { fontSize: size * 0.38, color: colors.primary }]}>ν</Text>
         </View>
       </View>
     </View>
@@ -53,22 +59,17 @@ const styles = StyleSheet.create({
   },
   glowRing: {
     position: 'absolute',
-    backgroundColor: Colors.primaryGlow,
     borderWidth: 1,
-    borderColor: 'rgba(0, 210, 255, 0.2)',
   },
   badge: {
-    backgroundColor: Colors.surface,
-    borderWidth: 2,
-    borderColor: Colors.borderLight,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   topAccent: {
     position: 'absolute',
@@ -76,7 +77,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
-    backgroundColor: Colors.primary,
   },
   contentRow: {
     flexDirection: 'row',
@@ -85,18 +85,14 @@ const styles = StyleSheet.create({
   },
   letterG: {
     fontWeight: '900',
-    color: Colors.textPrimary,
     letterSpacing: -1,
   },
   dot: {
-    color: Colors.brandNu,
     marginHorizontal: 1,
     fontWeight: '900',
   },
   letterNu: {
     fontWeight: '800',
-    color: Colors.primary,
     fontStyle: 'italic',
   },
 });
-

@@ -11,7 +11,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius, Typography } from '@/theme';
+import { Spacing, BorderRadius, Typography } from '@/theme';
 import {
   AppContact,
   ContactPhoneNumber,
@@ -24,6 +24,8 @@ import {
   maskPhoneNumber,
 } from '@/services/contacts';
 import { RecipientPreviewModal } from './RecipientPreviewModal';
+import { ContactAvatar } from './common/ContactAvatar';
+import { useTheme } from '@/context/ThemeContext';
 
 interface ContactsScreenProps {
   visible: boolean;
@@ -36,6 +38,7 @@ export function ContactsScreen({
   onClose,
   onSelectRecipient,
 }: ContactsScreenProps) {
+  const { colors } = useTheme();
   const [permissionState, setPermissionState] =
     useState<ContactPermissionState>('undetermined');
   const [isLoading, setIsLoading] = useState(false);
@@ -99,37 +102,44 @@ export function ContactsScreen({
     });
   };
 
-  // Filter contacts by search query
+  // Handle contact item tap
+  const handleContactRowPress = (contact: AppContact) => {
+    setRecentContacts((prev) => {
+      const filtered = prev.filter((c) => c.id !== contact.id);
+      return [contact, ...filtered].slice(0, 5);
+    });
+
+    if (contact.phoneNumbers && contact.phoneNumbers.length > 0) {
+      setSelectedPhone(contact.phoneNumbers[0]);
+    } else {
+      setSelectedPhone({
+        number: contact.primaryPhone,
+        formattedNumber: contact.primaryPhone,
+        label: 'mobile',
+      });
+    }
+
+    setSelectedContactForPreview(contact);
+  };
+
+  // Callback from preview submodal
+  const handleContinuePayment = (
+    recipient: AppContact,
+    phone: ContactPhoneNumber
+  ) => {
+    setSelectedContactForPreview(null);
+    onSelectRecipient(recipient, phone);
+  };
+
+  // Filtered contacts based on search query
   const filteredContacts = useMemo(() => {
     return filterContacts(contacts, searchQuery);
   }, [contacts, searchQuery]);
 
-  // Split out favorites when no search query is active
+  // Favorite contacts list
   const favoriteContacts = useMemo(() => {
-    if (searchQuery.trim().length > 0) return [];
     return contacts.filter((c) => favoriteIds.has(c.id));
-  }, [contacts, favoriteIds, searchQuery]);
-
-  // Handle contact selection -> open preview
-  const handleContactRowPress = (contact: AppContact) => {
-    setSelectedContactForPreview(contact);
-    setSelectedPhone(contact.phoneNumbers[0] || null);
-  };
-
-  // Continue from recipient preview
-  const handleContinuePayment = (
-    contact: AppContact,
-    phone: ContactPhoneNumber
-  ) => {
-    // Add to recent contacts
-    setRecentContacts((prev) => {
-      const filtered = prev.filter((p) => p.id !== contact.id);
-      return [contact, ...filtered].slice(0, 5);
-    });
-
-    setSelectedContactForPreview(null);
-    onSelectRecipient(contact, phone);
-  };
+  }, [contacts, favoriteIds]);
 
   return (
     <Modal
@@ -137,52 +147,73 @@ export function ContactsScreen({
       animationType="slide"
       presentationStyle="fullScreen"
       onRequestClose={onClose}>
-      <SafeAreaView style={styles.safeArea}>
-        {/* Top Header */}
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+        {/* Header Bar */}
+        <View style={[styles.header, { borderBottomColor: colors.divider }]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={onClose}
-            activeOpacity={0.7}
-            accessibilityLabel="Back">
-            <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+            accessibilityLabel="Close contacts">
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>Pay Anyone</Text>
-            <Text style={styles.headerSubtitle}>Select a contact to simulate payment</Text>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Pay Anyone</Text>
+            <Text style={[styles.headerSubtitle, { color: colors.textTertiary }]}>
+              Local Offline Simulation
+            </Text>
           </View>
         </View>
 
         {/* 1. Loading State */}
         {isLoading && (
           <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>Loading contacts...</Text>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.textTertiary }]}>
+              Reading device contacts...
+            </Text>
           </View>
         )}
 
-        {/* 2. Permission Request Screen (Undetermined / Pre-request) */}
+        {/* 2. Permission Undetermined State */}
         {!isLoading && permissionState === 'undetermined' && (
           <View style={styles.permissionCard}>
-            <View style={styles.permissionIconCircle}>
-              <Ionicons name="people-circle-outline" size={64} color={Colors.primary} />
+            <View
+              style={[
+                styles.permissionIconCircle,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.surfaceSubtle,
+                },
+              ]}>
+              <Ionicons name="people-outline" size={56} color={colors.primary} />
             </View>
-            <Text style={styles.permissionTitle}>Access Your Contacts</Text>
-            <Text style={styles.permissionBody}>
-              Allow G Pay.nu to access your phone contacts so you can quickly
-              simulate paying anyone on your device.
+            <Text style={[styles.permissionTitle, { color: colors.textPrimary }]}>
+              Pay Your Contacts
             </Text>
-            <View style={styles.privacyPill}>
-              <Ionicons name="shield-checkmark" size={16} color={Colors.primary} />
-              <Text style={styles.privacyPillText}>
-                Your contacts stay 100% on this device. No data is uploaded or transmitted.
+            <Text style={[styles.permissionBody, { color: colors.textSecondary }]}>
+              Allow G Pay.nu to access your phone contacts to simulate sending
+              money directly to friends and family.
+            </Text>
+            <View
+              style={[
+                styles.privacyPill,
+                {
+                  backgroundColor: colors.badgeBackground,
+                  borderColor: colors.badgeBorder,
+                },
+              ]}>
+              <Ionicons name="shield-checkmark" size={14} color={colors.badgeText} />
+              <Text style={[styles.privacyPillText, { color: colors.badgeText }]}>
+                100% On-Device • Never uploaded or synced externally
               </Text>
             </View>
             <TouchableOpacity
-              style={styles.actionBtn}
+              style={[styles.actionBtn, { backgroundColor: colors.primary }]}
               activeOpacity={0.8}
               onPress={handleRequestPermission}>
-              <Text style={styles.actionBtnText}>Allow Contact Access</Text>
+              <Text style={[styles.actionBtnText, { color: colors.textInverse }]}>
+                Continue & Select Contacts
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -190,19 +221,30 @@ export function ContactsScreen({
         {/* 3. Permission Denied State */}
         {!isLoading && permissionState === 'denied' && (
           <View style={styles.permissionCard}>
-            <View style={[styles.permissionIconCircle, { borderColor: Colors.warning }]}>
-              <Ionicons name="hand-left-outline" size={60} color={Colors.warning} />
+            <View
+              style={[
+                styles.permissionIconCircle,
+                {
+                  borderColor: colors.warning,
+                  backgroundColor: colors.warningSurface,
+                },
+              ]}>
+              <Ionicons name="alert-circle-outline" size={56} color={colors.warning} />
             </View>
-            <Text style={styles.permissionTitle}>Contacts Permission Needed</Text>
-            <Text style={styles.permissionBody}>
-              You denied contacts access. To select from your real phonebook,
-              permission is required.
+            <Text style={[styles.permissionTitle, { color: colors.textPrimary }]}>
+              Permission Required
+            </Text>
+            <Text style={[styles.permissionBody, { color: colors.textSecondary }]}>
+              Contacts permission was not granted. G Pay.nu needs contacts
+              access to simulate payments to real phone numbers.
             </Text>
             <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: Colors.warning }]}
+              style={[styles.actionBtn, { backgroundColor: colors.primary }]}
               activeOpacity={0.8}
               onPress={handleRequestPermission}>
-              <Text style={[styles.actionBtnText, { color: '#000' }]}>Retry Permission</Text>
+              <Text style={[styles.actionBtnText, { color: colors.textInverse }]}>
+                Retry Permission
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -210,19 +252,28 @@ export function ContactsScreen({
         {/* 4. Permission Permanently Denied Guidance */}
         {!isLoading && permissionState === 'permanently_denied' && (
           <View style={styles.permissionCard}>
-            <View style={[styles.permissionIconCircle, { borderColor: Colors.danger }]}>
-              <Ionicons name="settings-outline" size={60} color={Colors.danger} />
+            <View
+              style={[
+                styles.permissionIconCircle,
+                {
+                  borderColor: colors.danger,
+                  backgroundColor: colors.dangerSurface,
+                },
+              ]}>
+              <Ionicons name="settings-outline" size={56} color={colors.danger} />
             </View>
-            <Text style={styles.permissionTitle}>Permission Blocked</Text>
-            <Text style={styles.permissionBody}>
+            <Text style={[styles.permissionTitle, { color: colors.textPrimary }]}>
+              Permission Blocked
+            </Text>
+            <Text style={[styles.permissionBody, { color: colors.textSecondary }]}>
               Contacts access is disabled in Android settings. Please open
               device settings to grant the Contacts permission.
             </Text>
             <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: Colors.danger }]}
+              style={[styles.actionBtn, { backgroundColor: colors.primary }]}
               activeOpacity={0.8}
               onPress={openAppSettings}>
-              <Text style={[styles.actionBtnText, { color: '#FFF' }]}>
+              <Text style={[styles.actionBtnText, { color: colors.textInverse }]}>
                 Open Android Settings
               </Text>
             </TouchableOpacity>
@@ -233,20 +284,26 @@ export function ContactsScreen({
         {!isLoading && permissionState === 'granted' && (
           <View style={styles.listContainer}>
             {/* Search Bar */}
-            <View style={styles.searchBar}>
-              <Ionicons name="search" size={20} color={Colors.textTertiary} />
+            <View
+              style={[
+                styles.searchBar,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.border,
+                },
+              ]}>
+              <Ionicons name="search" size={20} color={colors.textSecondary} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: colors.textPrimary }]}
                 placeholder="Search name or phone number..."
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={colors.textTertiary}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoCorrect={false}
-                clearButtonMode="while-editing"
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
+                  <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -262,21 +319,27 @@ export function ContactsScreen({
                   {/* Favorites Section */}
                   {favoriteContacts.length > 0 && (
                     <View style={styles.sectionBlock}>
-                      <Text style={styles.sectionTitle}>
+                      <Text style={[styles.sectionTitle, { color: colors.primary }]}>
                         Favorites ({favoriteContacts.length})
                       </Text>
                       {favoriteContacts.map((fav) => (
                         <TouchableOpacity
                           key={`fav_${fav.id}`}
-                          style={styles.contactRow}
+                          style={[
+                            styles.contactRow,
+                            {
+                              backgroundColor: colors.surface,
+                              borderColor: colors.border,
+                            },
+                          ]}
                           activeOpacity={0.7}
                           onPress={() => handleContactRowPress(fav)}>
-                          <View style={styles.rowAvatar}>
-                            <Text style={styles.rowAvatarText}>{fav.initials}</Text>
-                          </View>
+                          <ContactAvatar name={fav.name} initials={fav.initials} size={44} />
                           <View style={styles.rowInfo}>
-                            <Text style={styles.rowName}>{fav.name}</Text>
-                            <Text style={styles.rowPhone}>
+                            <Text style={[styles.rowName, { color: colors.textPrimary }]}>
+                              {fav.name}
+                            </Text>
+                            <Text style={[styles.rowPhone, { color: colors.textSecondary }]}>
                               {maskPhoneNumber(fav.primaryPhone)}
                             </Text>
                           </View>
@@ -293,39 +356,41 @@ export function ContactsScreen({
                   {/* Recently Selected Section */}
                   {recentContacts.length > 0 && searchQuery.length === 0 && (
                     <View style={styles.sectionBlock}>
-                      <Text style={styles.sectionTitle}>Recently Selected</Text>
+                      <Text style={[styles.sectionTitle, { color: colors.primary }]}>
+                        Recently Selected
+                      </Text>
                       {recentContacts.map((rec) => (
                         <TouchableOpacity
                           key={`rec_${rec.id}`}
-                          style={styles.contactRow}
+                          style={[
+                            styles.contactRow,
+                            {
+                              backgroundColor: colors.surface,
+                              borderColor: colors.border,
+                            },
+                          ]}
                           activeOpacity={0.7}
                           onPress={() => handleContactRowPress(rec)}>
-                          <View
-                            style={[
-                              styles.rowAvatar,
-                              { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
-                            ]}>
-                            <Text style={[styles.rowAvatarText, { color: Colors.textPrimary }]}>
-                              {rec.initials}
-                            </Text>
-                          </View>
+                          <ContactAvatar name={rec.name} initials={rec.initials} size={44} />
                           <View style={styles.rowInfo}>
-                            <Text style={styles.rowName}>{rec.name}</Text>
-                            <Text style={styles.rowPhone}>
+                            <Text style={[styles.rowName, { color: colors.textPrimary }]}>
+                              {rec.name}
+                            </Text>
+                            <Text style={[styles.rowPhone, { color: colors.textSecondary }]}>
                               {maskPhoneNumber(rec.primaryPhone)}
                             </Text>
                           </View>
                           <Ionicons
                             name="time-outline"
                             size={18}
-                            color={Colors.textTertiary}
+                            color={colors.textTertiary}
                           />
                         </TouchableOpacity>
                       ))}
                     </View>
                   )}
 
-                  <Text style={styles.sectionTitle}>
+                  <Text style={[styles.sectionTitle, { color: colors.primary }]}>
                     {searchQuery.length > 0
                       ? `Matching Contacts (${filteredContacts.length})`
                       : `All Device Contacts (${contacts.length})`}
@@ -336,17 +401,23 @@ export function ContactsScreen({
                 const isFav = favoriteIds.has(item.id);
                 return (
                   <TouchableOpacity
-                    style={styles.contactRow}
+                    style={[
+                      styles.contactRow,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                      },
+                    ]}
                     activeOpacity={0.7}
                     onPress={() => handleContactRowPress(item)}>
-                    <View style={styles.rowAvatar}>
-                      <Text style={styles.rowAvatarText}>{item.initials}</Text>
-                    </View>
+                    <ContactAvatar name={item.name} initials={item.initials} size={44} />
                     <View style={styles.rowInfo}>
-                      <Text style={styles.rowName} numberOfLines={1}>
+                      <Text
+                        style={[styles.rowName, { color: colors.textPrimary }]}
+                        numberOfLines={1}>
                         {item.name}
                       </Text>
-                      <Text style={styles.rowPhone}>
+                      <Text style={[styles.rowPhone, { color: colors.textSecondary }]}>
                         {maskPhoneNumber(item.primaryPhone)}
                         {item.phoneNumbers.length > 1
                           ? ` • ${item.phoneNumbers.length} numbers`
@@ -359,7 +430,7 @@ export function ContactsScreen({
                       <Ionicons
                         name={isFav ? 'star' : 'star-outline'}
                         size={22}
-                        color={isFav ? '#FFD700' : Colors.textTertiary}
+                        color={isFav ? '#FFD700' : colors.textTertiary}
                       />
                     </TouchableOpacity>
                   </TouchableOpacity>
@@ -369,11 +440,13 @@ export function ContactsScreen({
                 <View style={styles.emptyContainer}>
                   <Ionicons
                     name="search-outline"
-                    size={48}
-                    color={Colors.textTertiary}
+                    size={44}
+                    color={colors.textTertiary}
                   />
-                  <Text style={styles.emptyTitle}>No Contacts Found</Text>
-                  <Text style={styles.emptySubtitle}>
+                  <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+                    No Contacts Found
+                  </Text>
+                  <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                     {searchQuery.length > 0
                       ? `No contact matching "${searchQuery}"`
                       : 'No contacts found on this device.'}
@@ -401,7 +474,6 @@ export function ContactsScreen({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#090D16',
   },
   header: {
     flexDirection: 'row',
@@ -409,7 +481,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.screenPadding,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   backButton: {
     padding: Spacing.xs,
@@ -419,14 +490,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    ...Typography.title2,
     fontSize: 18,
-    color: Colors.textPrimary,
+    fontWeight: '700',
   },
   headerSubtitle: {
-    ...Typography.caption,
     fontSize: 11,
-    color: Colors.textTertiary,
+    marginTop: 1,
   },
   centerContainer: {
     flex: 1,
@@ -434,8 +503,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loadingText: {
-    ...Typography.body,
-    color: Colors.textTertiary,
+    fontSize: 14,
     marginTop: Spacing.md,
   },
   permissionCard: {
@@ -445,60 +513,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   permissionIconCircle: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    backgroundColor: 'rgba(0, 210, 255, 0.08)',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   permissionTitle: {
-    ...Typography.title1,
     fontSize: 22,
-    color: Colors.textPrimary,
+    fontWeight: '800',
     marginBottom: Spacing.sm,
     textAlign: 'center',
   },
   permissionBody: {
-    ...Typography.body,
     fontSize: 14,
-    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   privacyPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 210, 255, 0.06)',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(0, 210, 255, 0.2)',
     marginBottom: Spacing.xl,
     gap: Spacing.xs,
   },
   privacyPillText: {
-    ...Typography.caption,
     fontSize: 11,
-    color: Colors.primary,
-    flex: 1,
+    fontWeight: '600',
   },
   actionBtn: {
-    backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    paddingVertical: 14,
+    borderRadius: BorderRadius.full,
     width: '100%',
     alignItems: 'center',
   },
   actionBtnText: {
-    ...Typography.button,
-    color: '#000',
+    fontSize: 14,
     fontWeight: '700',
   },
   listContainer: {
@@ -507,20 +564,17 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#161C2E',
     marginHorizontal: Spacing.screenPadding,
     marginTop: Spacing.md,
     marginBottom: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
+    height: 48,
+    borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   searchInput: {
     flex: 1,
     marginLeft: Spacing.sm,
-    color: Colors.textPrimary,
     fontSize: 14,
   },
   listContent: {
@@ -531,53 +585,31 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   sectionTitle: {
-    ...Typography.caption,
     fontSize: 12,
-    color: Colors.primary,
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     marginVertical: Spacing.sm,
   },
   contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#111726',
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.md,
-    marginBottom: Spacing.xs,
+    marginBottom: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  rowAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0, 210, 255, 0.12)',
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  rowAvatarText: {
-    ...Typography.title2,
-    fontSize: 16,
-    color: Colors.primary,
+    gap: 12,
   },
   rowInfo: {
     flex: 1,
   },
   rowName: {
-    ...Typography.body,
-    fontWeight: '600',
-    color: Colors.textPrimary,
     fontSize: 15,
+    fontWeight: '600',
     marginBottom: 2,
   },
   rowPhone: {
-    ...Typography.caption,
     fontSize: 12,
-    color: Colors.textTertiary,
   },
   starBtn: {
     padding: Spacing.xs,
@@ -588,14 +620,12 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxl,
   },
   emptyTitle: {
-    ...Typography.title2,
     fontSize: 16,
-    color: Colors.textPrimary,
+    fontWeight: '700',
     marginTop: Spacing.sm,
   },
   emptySubtitle: {
-    ...Typography.caption,
-    color: Colors.textTertiary,
+    fontSize: 13,
     marginTop: 4,
   },
 });

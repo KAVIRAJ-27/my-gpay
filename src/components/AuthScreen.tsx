@@ -11,11 +11,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { Colors, Spacing, BorderRadius, Typography, CommonStyles } from '@/theme';
+import { Spacing, BorderRadius, Typography, CommonStyles } from '@/theme';
 import { BrandMark } from './BrandMark';
 import { DemoBadge } from './DemoBadge';
 import { PinFallbackModal } from './PinFallbackModal';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 
 export function AuthScreen() {
   const {
@@ -26,6 +27,7 @@ export function AuthScreen() {
     authenticatePIN,
     clearAuthError,
   } = useAuth();
+  const { colors } = useTheme();
 
   const [showPinModal, setShowPinModal] = useState(false);
 
@@ -36,13 +38,13 @@ export function AuthScreen() {
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.15,
-          duration: 1500,
+          toValue: 1.12,
+          duration: 1600,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1500,
+          duration: 1600,
           useNativeDriver: true,
         }),
       ])
@@ -53,12 +55,13 @@ export function AuthScreen() {
     await authenticateBiometric();
   };
 
-  const handlePinSuccess = () => {
+  const handlePinSuccess = (pin: string) => {
     setShowPinModal(false);
+    authenticatePIN(pin);
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
@@ -70,25 +73,34 @@ export function AuthScreen() {
         {/* Brand Header */}
         <View style={styles.header}>
           <BrandMark size={76} showGlow />
-          <Text style={styles.brandTitle}>G Pay.nu</Text>
-          <Text style={styles.brandSubtitle}>
+          <Text style={[styles.brandTitle, { color: colors.textPrimary }]}>G Pay.nu</Text>
+          <Text style={[styles.brandSubtitle, { color: colors.textSecondary }]}>
             Next-Gen Local Wallet Simulator
           </Text>
         </View>
 
         {/* Biometric Card */}
-        <View style={CommonStyles.card}>
+        <View
+          style={[
+            CommonStyles.card,
+            styles.card,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}>
           {/* Status Pill */}
-          <View style={styles.statusPill}>
+          <View
+            style={[
+              styles.statusPill,
+              { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderLight },
+            ]}>
             <View
               style={[
                 styles.statusDot,
                 biometricStatus?.canAuthenticate
-                  ? styles.statusDotActive
-                  : styles.statusDotWarning,
+                  ? { backgroundColor: colors.success }
+                  : { backgroundColor: colors.warning },
               ]}
             />
-            <Text style={styles.statusPillText}>
+            <Text style={[styles.statusPillText, { color: colors.textSecondary }]}>
               {biometricStatus?.canAuthenticate
                 ? 'Biometric Sensor Ready'
                 : 'Biometrics Unavailable (PIN Ready)'}
@@ -109,28 +121,37 @@ export function AuthScreen() {
               style={[
                 styles.pulseRing,
                 {
+                  borderColor: colors.primaryGlowStrong,
+                  backgroundColor: colors.primaryGlow,
                   transform: [{ scale: pulseAnim }],
                 },
               ]}
             />
-            <View style={styles.sensorButton}>
+            <View
+              style={[
+                styles.sensorButton,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.border,
+                },
+              ]}>
               {isAuthenticating ? (
-                <ActivityIndicator size="large" color={Colors.primary} />
+                <ActivityIndicator size="large" color={colors.primary} />
               ) : (
                 <MaterialCommunityIcons
                   name="fingerprint"
                   size={64}
                   color={
                     biometricStatus?.canAuthenticate
-                      ? Colors.primary
-                      : Colors.textSecondary
+                      ? colors.primary
+                      : colors.textSecondary
                   }
                 />
               )}
             </View>
           </TouchableOpacity>
 
-          <Text style={styles.sensorInstruction}>
+          <Text style={[styles.sensorInstruction, { color: colors.textSecondary }]}>
             {biometricStatus?.canAuthenticate
               ? 'Touch the sensor or tap to unlock'
               : 'Sensor not available — use security PIN'}
@@ -138,14 +159,23 @@ export function AuthScreen() {
 
           {/* Error Message */}
           {authError && (
-            <View style={styles.errorBanner}>
+            <View
+              style={[
+                styles.errorBanner,
+                {
+                  backgroundColor: colors.dangerSurface,
+                  borderColor: colors.dangerBorder,
+                },
+              ]}>
               <Ionicons
                 name="alert-circle-outline"
                 size={16}
-                color={Colors.danger}
+                color={colors.danger}
                 style={{ marginRight: 6 }}
               />
-              <Text style={styles.errorBannerText}>{authError}</Text>
+              <Text style={[styles.errorBannerText, { color: colors.danger }]}>
+                {authError}
+              </Text>
             </View>
           )}
 
@@ -153,17 +183,21 @@ export function AuthScreen() {
           <View style={styles.actionGroup}>
             {biometricStatus?.canAuthenticate && (
               <TouchableOpacity
-                style={[CommonStyles.primaryButton, styles.primaryAction]}
+                style={[
+                  CommonStyles.primaryButton,
+                  styles.primaryAction,
+                  { backgroundColor: colors.primary },
+                ]}
                 activeOpacity={0.8}
                 disabled={isAuthenticating}
                 onPress={handleBiometricPress}>
                 <MaterialCommunityIcons
                   name="fingerprint"
                   size={20}
-                  color={Colors.textInverse}
+                  color={colors.textInverse}
                   style={{ marginRight: 8 }}
                 />
-                <Text style={styles.primaryButtonText}>
+                <Text style={[styles.primaryButtonText, { color: colors.textInverse }]}>
                   {isAuthenticating ? 'Authenticating...' : 'Unlock with Fingerprint'}
                 </Text>
               </TouchableOpacity>
@@ -172,7 +206,11 @@ export function AuthScreen() {
             <TouchableOpacity
               style={[
                 CommonStyles.secondaryButton,
-                !biometricStatus?.canAuthenticate && styles.primaryActionFallback,
+                styles.secondaryAction,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.border,
+                },
               ]}
               activeOpacity={0.8}
               onPress={() => {
@@ -182,10 +220,10 @@ export function AuthScreen() {
               <Ionicons
                 name="key-outline"
                 size={18}
-                color={Colors.textPrimary}
+                color={colors.primary}
                 style={{ marginRight: 8 }}
               />
-              <Text style={styles.buttonTextSecondary}>
+              <Text style={[styles.buttonTextSecondary, { color: colors.textPrimary }]}>
                 {biometricStatus?.canAuthenticate
                   ? 'Use Security PIN Instead'
                   : 'Unlock with Security PIN'}
@@ -195,89 +233,75 @@ export function AuthScreen() {
         </View>
 
         {/* Device Diagnostics & Security Info */}
-        <View style={styles.diagnosticsCard}>
+        <View
+          style={[
+            styles.diagnosticsCard,
+            {
+              backgroundColor: colors.surfaceSubtle,
+              borderColor: colors.border,
+            },
+          ]}>
           <View style={styles.diagnosticsHeader}>
-            <Ionicons name="hardware-chip-outline" size={16} color={Colors.primary} />
-            <Text style={styles.diagnosticsTitle}>Android Device Diagnostics</Text>
-          </View>
-
-          <View style={styles.diagRow}>
-            <Text style={styles.diagLabel}>Biometric Sensor:</Text>
-            <Text
-              style={[
-                styles.diagValue,
-                {
-                  color: biometricStatus?.hasHardware
-                    ? Colors.success
-                    : Colors.warning,
-                },
-              ]}>
-              {biometricStatus?.hasHardware ? 'Detected' : 'Unavailable'}
+            <Ionicons name="hardware-chip-outline" size={16} color={colors.primary} />
+            <Text style={[styles.diagnosticsTitle, { color: colors.textPrimary }]}>
+              Android Device Diagnostics
             </Text>
           </View>
-
-          <View style={styles.diagRow}>
-            <Text style={styles.diagLabel}>Enrolled Biometrics:</Text>
+          <View style={styles.diagnosticRow}>
+            <Text style={[styles.diagLabel, { color: colors.textSecondary }]}>
+              Biometric Sensor:
+            </Text>
             <Text
               style={[
                 styles.diagValue,
                 {
-                  color: biometricStatus?.isEnrolled
-                    ? Colors.success
-                    : Colors.warning,
+                  color: biometricStatus?.hasHardware ? colors.success : colors.danger,
+                },
+              ]}>
+              {biometricStatus?.hasHardware ? 'Detected' : 'Not Detected'}
+            </Text>
+          </View>
+          <View style={styles.diagnosticRow}>
+            <Text style={[styles.diagLabel, { color: colors.textSecondary }]}>
+              Enrolled Biometrics:
+            </Text>
+            <Text
+              style={[
+                styles.diagValue,
+                {
+                  color: biometricStatus?.isEnrolled ? colors.success : colors.warning,
                 },
               ]}>
               {biometricStatus?.isEnrolled ? 'Enrolled' : 'Not Enrolled'}
             </Text>
           </View>
-
-          <View style={styles.diagRow}>
-            <Text style={styles.diagLabel}>Supported Types:</Text>
-            <Text style={styles.diagValue}>
+          <View style={styles.diagnosticRow}>
+            <Text style={[styles.diagLabel, { color: colors.textSecondary }]}>
+              Supported Types:
+            </Text>
+            <Text style={[styles.diagValue, { color: colors.textPrimary }]}>
               {biometricStatus?.supportedTypes.length
                 ? biometricStatus.supportedTypes.join(', ')
                 : 'None'}
             </Text>
           </View>
-
-          <View style={styles.diagRow}>
-            <Text style={styles.diagLabel}>Keyguard Level:</Text>
-            <Text style={styles.diagValue}>
-              {biometricStatus?.securityLevel || 'Loading...'}
+          <View style={styles.diagnosticRow}>
+            <Text style={[styles.diagLabel, { color: colors.textSecondary }]}>
+              Keyguard Level:
             </Text>
-          </View>
-
-          <View style={styles.diagRow}>
-            <Text style={styles.diagLabel}>Target Device:</Text>
-            <Text style={styles.diagValue}>Realme P4 (RMX5110)</Text>
-          </View>
-
-          <View style={styles.diagDivider} />
-
-          <View style={styles.complianceRow}>
-            <Ionicons
-              name="shield-outline"
-              size={13}
-              color={Colors.textTertiary}
-              style={{ marginRight: 6 }}
-            />
-            <Text style={styles.complianceText}>
-              Zero-knowledge architecture. Biometric credentials never leave
-              Android OS TEE.
+            <Text style={[styles.diagValue, { color: colors.textPrimary }]}>
+              {biometricStatus?.securityLevel || 'N/A'}
             </Text>
           </View>
         </View>
-
-        {/* Fallback PIN Modal */}
-        <PinFallbackModal
-          visible={showPinModal}
-          onClose={() => setShowPinModal(false)}
-          onSuccess={() => {
-            authenticatePIN('1234');
-            handlePinSuccess();
-          }}
-        />
       </ScrollView>
+
+      {/* PIN Fallback Modal */}
+      <PinFallbackModal
+        visible={showPinModal}
+        onClose={() => setShowPinModal(false)}
+        onSuccess={handlePinSuccess}
+      />
     </SafeAreaView>
   );
 }
@@ -285,42 +309,46 @@ export function AuthScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   scrollContent: {
     paddingHorizontal: Spacing.screenPadding,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.xxxl,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xl,
+    alignItems: 'center',
   },
   badgeContainer: {
-    alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   header: {
     alignItems: 'center',
     marginBottom: Spacing.xl,
   },
   brandTitle: {
-    ...Typography.hero,
+    fontSize: 26,
+    fontWeight: '800',
     marginTop: Spacing.md,
-    color: Colors.textPrimary,
+    letterSpacing: -0.5,
   },
   brandSubtitle: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xxs,
+    fontSize: 14,
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  card: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'center',
-    backgroundColor: Colors.surfaceSubtle,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    paddingHorizontal: Spacing.md,
     paddingVertical: 6,
-    paddingHorizontal: 12,
     borderRadius: BorderRadius.full,
-    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    marginBottom: Spacing.xl,
   },
   statusDot: {
     width: 8,
@@ -328,19 +356,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginRight: 8,
   },
-  statusDotActive: {
-    backgroundColor: Colors.success,
-  },
-  statusDotWarning: {
-    backgroundColor: Colors.warning,
-  },
   statusPillText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textSecondary,
   },
   sensorContainer: {
-    alignSelf: 'center',
     width: 120,
     height: 120,
     justifyContent: 'center',
@@ -349,116 +369,91 @@ const styles = StyleSheet.create({
   },
   pulseRing: {
     position: 'absolute',
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    borderWidth: 2,
-    borderColor: Colors.primaryGlowStrong,
-    backgroundColor: Colors.primaryGlow,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 1.5,
   },
   sensorButton: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: Colors.backgroundElevated,
-    borderWidth: 2,
-    borderColor: Colors.borderLight,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   sensorInstruction: {
-    ...Typography.body,
-    textAlign: 'center',
-    color: Colors.textSecondary,
+    fontSize: 14,
+    marginTop: Spacing.md,
     marginBottom: Spacing.lg,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.dangerSurface,
-    borderWidth: 1,
-    borderColor: Colors.dangerBorder,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    marginBottom: Spacing.md,
+    width: '100%',
   },
   errorBannerText: {
     fontSize: 13,
-    color: Colors.danger,
     fontWeight: '500',
     flex: 1,
   },
   actionGroup: {
-    gap: Spacing.md,
+    width: '100%',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
   },
   primaryAction: {
     width: '100%',
   },
-  primaryActionFallback: {
-    borderColor: Colors.primary,
+  secondaryAction: {
+    width: '100%',
   },
   primaryButtonText: {
-    color: Colors.textInverse,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
   },
   buttonTextSecondary: {
-    color: Colors.textPrimary,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
   },
   diagnosticsCard: {
-    backgroundColor: Colors.surfaceSubtle,
+    width: '100%',
     borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.border,
-    marginTop: Spacing.xl,
   },
   diagnosticsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
     gap: 8,
+    marginBottom: Spacing.sm,
   },
   diagnosticsTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: Colors.textPrimary,
   },
-  diagRow: {
+  diagnosticRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 6,
+    paddingVertical: 4,
   },
   diagLabel: {
-    fontSize: 13,
-    color: Colors.textSecondary,
+    fontSize: 12,
   },
   diagValue: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  diagDivider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: Spacing.md,
-  },
-  complianceRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  complianceText: {
-    fontSize: 11,
-    color: Colors.textTertiary,
-    lineHeight: 16,
-    flex: 1,
   },
 });

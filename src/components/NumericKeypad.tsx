@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius, Typography } from '@/theme';
+import { Spacing, BorderRadius, Typography } from '@/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface NumericKeypadProps {
   onDigitPress: (digit: string) => void;
@@ -18,6 +19,7 @@ export function NumericKeypad({
   onClearPress,
   onQuickAmountPress,
 }: NumericKeypadProps) {
+  const { colors } = useTheme();
   const quickAmounts = [100, 500, 1000, 2000];
 
   return (
@@ -25,23 +27,37 @@ export function NumericKeypad({
       {/* Quick Amount Suggestion Chips + Clear Button */}
       <View style={styles.quickBar}>
         <TouchableOpacity
-          style={styles.clearChip}
+          style={[
+            styles.clearChip,
+            {
+              backgroundColor: colors.dangerSurface,
+              borderColor: colors.dangerBorder,
+            },
+          ]}
           onPress={onClearPress}
           activeOpacity={0.7}
           accessibilityLabel="Clear amount">
-          <Ionicons name="trash-outline" size={14} color={Colors.danger} />
-          <Text style={styles.clearChipText}>Clear</Text>
+          <Ionicons name="trash-outline" size={13} color={colors.danger} />
+          <Text style={[styles.clearChipText, { color: colors.danger }]}>Clear</Text>
         </TouchableOpacity>
 
         <View style={styles.chipsRow}>
           {quickAmounts.map((val) => (
             <TouchableOpacity
               key={val}
-              style={styles.amountChip}
+              style={[
+                styles.amountChip,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.border,
+                },
+              ]}
               onPress={() => onQuickAmountPress?.(val)}
               activeOpacity={0.75}
               accessibilityLabel={`Add ${val} rupees`}>
-              <Text style={styles.amountChipText}>+₹{val}</Text>
+              <Text style={[styles.amountChipText, { color: colors.primary }]}>
+                +₹{val}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -85,22 +101,34 @@ export function NumericKeypad({
         {/* Row 4: . , 0 , ⌫ */}
         <View style={styles.row}>
           <TouchableOpacity
-            style={styles.keyButton}
+            style={[
+              styles.keyButton,
+              {
+                backgroundColor: colors.surfaceSubtle,
+                borderColor: colors.borderLight,
+              },
+            ]}
             onPress={onDecimalPress}
             activeOpacity={0.6}
             accessibilityLabel="Decimal point">
-            <Text style={styles.keyText}>•</Text>
+            <Text style={[styles.keyText, { color: colors.textPrimary }]}>•</Text>
           </TouchableOpacity>
 
           <KeypadButton label="0" onPress={() => onDigitPress('0')} />
 
           <TouchableOpacity
-            style={styles.keyButton}
+            style={[
+              styles.keyButton,
+              {
+                backgroundColor: colors.surfaceSubtle,
+                borderColor: colors.borderLight,
+              },
+            ]}
             onPress={onBackspacePress}
             onLongPress={onClearPress}
             activeOpacity={0.6}
             accessibilityLabel="Backspace">
-            <Ionicons name="backspace-outline" size={26} color={Colors.textPrimary} />
+            <Ionicons name="backspace-outline" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -115,13 +143,21 @@ function KeypadButton({
   label: string;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+
   return (
     <TouchableOpacity
-      style={styles.keyButton}
+      style={[
+        styles.keyButton,
+        {
+          backgroundColor: colors.surfaceSubtle,
+          borderColor: colors.borderLight,
+        },
+      ]}
       onPress={onPress}
       activeOpacity={0.6}
       accessibilityLabel={`Key ${label}`}>
-      <Text style={styles.keyText}>{label}</Text>
+      <Text style={[styles.keyText, { color: colors.textPrimary }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -144,34 +180,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: 7,
     borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
     gap: 4,
   },
   clearChipText: {
-    ...Typography.caption,
     fontSize: 12,
-    fontWeight: '600',
-    color: Colors.danger,
+    fontWeight: '700',
   },
   chipsRow: {
     flexDirection: 'row',
     gap: 6,
   },
   amountChip: {
-    paddingHorizontal: Spacing.sm + 2,
+    paddingHorizontal: Spacing.sm + 4,
     paddingVertical: 7,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   amountChipText: {
-    ...Typography.caption,
     fontSize: 12,
-    fontWeight: '600',
-    color: Colors.primary,
+    fontWeight: '700',
   },
   grid: {
     gap: 8,
@@ -184,17 +212,13 @@ const styles = StyleSheet.create({
   keyButton: {
     flex: 1,
     height: 56,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: 'rgba(21, 30, 50, 0.7)',
+    borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   keyText: {
-    ...Typography.title1,
     fontSize: 24,
     fontWeight: '600',
-    color: Colors.textPrimary,
   },
 });

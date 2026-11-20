@@ -6,800 +6,876 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
-  TextInput,
-  Switch,
   Alert,
+  Switch,
+  TextInput,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius, Typography, CommonStyles } from '@/theme';
-import { USER_PROFILE } from '@/data/mockData';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { getActivePIN, updateSecurityPIN, verifySimulatedPIN } from '@/services/auth';
+import { useTheme } from '@/context/ThemeContext';
+import { YouHeaderArt } from '../common/YouHeaderArt';
+import { USER_PROFILE } from '@/data/mockData';
+import { getActivePIN, updateSecurityPIN } from '@/services/auth';
 import { getSetting, setSetting } from '@/services/database';
-import { DemoBadge } from '../DemoBadge';
 
 interface YouTabProps {
   onLock: () => void;
 }
 
 export function YouTab({ onLock }: YouTabProps) {
-  const { biometricStatus, authMethodUsed } = useAuth();
+  const { lockSimulator } = useAuth();
+  const { colors, isDark, toggleTheme } = useTheme();
 
-  // Profile data from SQLite app_settings
-  const [fullName, setFullName] = useState(USER_PROFILE.fullName);
-  const [phoneMasked, setPhoneMasked] = useState(USER_PROFILE.phoneMasked);
-  const [upiId, setUpiId] = useState(USER_PROFILE.upiId);
+  // Modals state
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [showRewardsModal, setShowRewardsModal] = useState(false);
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showOverflowMenu, setShowOverflowMenu] = useState(false);
+  const [modalItem, setModalItem] = useState<{ title: string; desc: string; icon: string } | null>(null);
 
-  // Settings
+  // Settings state inside SettingsModal
   const [biometricsEnabled, setBiometricsEnabled] = useState(true);
-  const [activePinDisplay, setActivePinDisplay] = useState(getActivePIN());
-  const [showPinValue, setShowPinValue] = useState(false);
-
-  // Modals
-  const [editProfileVisible, setEditProfileVisible] = useState(false);
   const [changePinVisible, setChangePinVisible] = useState(false);
-
-  // Edit Profile Form State
-  const [tempName, setTempName] = useState(fullName);
-  const [tempPhone, setTempPhone] = useState(phoneMasked);
-  const [tempUpi, setTempUpi] = useState(upiId);
-
-  // Change PIN Form State
   const [currentPinInput, setCurrentPinInput] = useState('');
   const [newPinInput, setNewPinInput] = useState('');
-  const [confirmPinInput, setConfirmPinInput] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
-  const [pinSuccessMsg, setPinSuccessMsg] = useState<string | null>(null);
 
-  // Load persisted profile and settings on mount
-  useEffect(() => {
-    async function loadProfile() {
-      try {
-        const savedName = await getSetting('profile_name', USER_PROFILE.fullName);
-        const savedPhone = await getSetting('profile_phone', USER_PROFILE.phoneMasked);
-        const savedUpi = await getSetting('profile_upi', USER_PROFILE.upiId);
-        const bioSetting = await getSetting('biometrics_enabled', 'true');
-
-        if (savedName) setFullName(savedName);
-        if (savedPhone) setPhoneMasked(savedPhone);
-        if (savedUpi) setUpiId(savedUpi);
-        setBiometricsEnabled(bioSetting === 'true');
-        setActivePinDisplay(getActivePIN());
-      } catch (err) {
-        console.warn('Failed to load profile settings:', err);
-      }
-    }
-    loadProfile();
-  }, []);
-
-  // Save Profile Handler
-  const handleSaveProfile = async () => {
-    const cleanName = tempName.trim() || USER_PROFILE.fullName;
-    const cleanPhone = tempPhone.trim() || USER_PROFILE.phoneMasked;
-    const cleanUpi = tempUpi.trim() || USER_PROFILE.upiId;
-
-    await setSetting('profile_name', cleanName);
-    await setSetting('profile_phone', cleanPhone);
-    await setSetting('profile_upi', cleanUpi);
-
-    setFullName(cleanName);
-    setPhoneMasked(cleanPhone);
-    setUpiId(cleanUpi);
-    setEditProfileVisible(false);
+  const openSimpleModal = (title: string, desc: string, icon: string = 'information-circle-outline') => {
+    setModalItem({ title, desc, icon });
   };
 
-  // Toggle Biometrics Handler
-  const handleToggleBiometrics = async (val: boolean) => {
-    setBiometricsEnabled(val);
-    await setSetting('biometrics_enabled', val ? 'true' : 'false');
-  };
-
-  // Change PIN Submit Handler
-  const handleChangePinSubmit = async () => {
-    setPinError(null);
-    setPinSuccessMsg(null);
-
+  const handleChangePin = async () => {
     if (currentPinInput !== getActivePIN()) {
-      setPinError('Current PIN does not match active security PIN');
+      setPinError('Current PIN does not match');
       return;
     }
-
     if (!/^\d{4}$/.test(newPinInput)) {
-      setPinError('New PIN must be exactly 4 numeric digits');
+      setPinError('New PIN must be 4 digits');
       return;
     }
-
-    if (newPinInput !== confirmPinInput) {
-      setPinError('New PIN and confirmation PIN do not match');
-      return;
-    }
-
-    if (newPinInput === currentPinInput) {
-      setPinError('New PIN cannot be identical to current PIN');
-      return;
-    }
-
     const success = await updateSecurityPIN(newPinInput);
     if (success) {
-      setActivePinDisplay(newPinInput);
-      setPinSuccessMsg('Security PIN updated successfully!');
-      setTimeout(() => {
-        setChangePinVisible(false);
-        setCurrentPinInput('');
-        setNewPinInput('');
-        setConfirmPinInput('');
-        setPinSuccessMsg(null);
-      }, 1000);
-    } else {
-      setPinError('Failed to update PIN in local secure storage');
+      Alert.alert('PIN Updated', 'Demo security PIN has been updated.');
+      setChangePinVisible(false);
+      setCurrentPinInput('');
+      setNewPinInput('');
+      setPinError(null);
     }
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}>
-      {/* Profile Header */}
-      <View style={styles.profileHeader}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{fullName.charAt(0).toUpperCase()}</Text>
-        </View>
-        <Text style={styles.profileName}>{fullName}</Text>
-        <Text style={styles.profileUpi}>{upiId}</Text>
-        <Text style={styles.profilePhone}>{phoneMasked}</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}>
 
-        <TouchableOpacity
-          style={styles.editProfileBtn}
-          activeOpacity={0.7}
-          onPress={() => {
-            setTempName(fullName);
-            setTempPhone(phoneMasked);
-            setTempUpi(upiId);
-            setEditProfileVisible(true);
-          }}>
-          <Ionicons name="pencil-outline" size={14} color={Colors.primary} />
-          <Text style={styles.editProfileBtnText}>Edit Profile</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Security & Authentication Status Card */}
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>Security & Access</Text>
-        <DemoBadge label="TEE KEYGUARD" />
-      </View>
-
-      <View style={[CommonStyles.card, styles.card]}>
-        {/* Biometrics Toggle */}
-        <View style={styles.statusRow}>
-          <View style={styles.statusIconBox}>
-            <MaterialCommunityIcons
-              name="fingerprint"
-              size={22}
-              color={Colors.primary}
-            />
-          </View>
-          <View style={styles.statusDetails}>
-            <Text style={styles.statusTitle}>Biometric Authentication</Text>
-            <Text style={styles.statusSub}>
-              {biometricStatus?.canAuthenticate
-                ? 'Hardware Ready (Fingerprint / Face)'
-                : 'Sensor Unavailable (PIN Fallback)'}
-            </Text>
-          </View>
-          <Switch
-            value={biometricsEnabled && !!biometricStatus?.canAuthenticate}
-            onValueChange={handleToggleBiometrics}
-            trackColor={{ false: Colors.border, true: Colors.primary }}
-            thumbColor={Colors.textInverse}
-            disabled={!biometricStatus?.canAuthenticate}
-          />
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* Security PIN Config */}
-        <View style={styles.statusRow}>
-          <View style={styles.statusIconBox}>
-            <Ionicons name="key-outline" size={20} color={Colors.brandNu} />
-          </View>
-          <View style={styles.statusDetails}>
-            <Text style={styles.statusTitle}>Security PIN</Text>
-            <Text style={styles.statusSub}>
-              Active PIN:{' '}
-              <Text style={{ color: Colors.primary, fontWeight: '700' }}>
-                {showPinValue ? activePinDisplay : '••••'}
-              </Text>
-            </Text>
-          </View>
+        {/* 1. TOP HEADER ART (NIGHT HILLS, TREE SILHOUETTE, AIRPLANE) */}
+        <View style={styles.headerArtWrapper}>
+          <YouHeaderArt />
           <TouchableOpacity
-            style={styles.pinActionBtn}
-            onPress={() => setShowPinValue(!showPinValue)}>
-            <Ionicons
-              name={showPinValue ? 'eye-off-outline' : 'eye-outline'}
-              size={18}
-              color={Colors.textSecondary}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.changePinBtn}
+            style={styles.overflowBtn}
             activeOpacity={0.7}
-            onPress={() => {
-              setCurrentPinInput('');
-              setNewPinInput('');
-              setConfirmPinInput('');
-              setPinError(null);
-              setPinSuccessMsg(null);
-              setChangePinVisible(true);
-            }}>
-            <Text style={styles.changePinBtnText}>Change</Text>
+            onPress={() => setShowOverflowMenu(true)}>
+            <Ionicons name="ellipsis-vertical" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.divider} />
-
-        {/* Current Session Method */}
-        <View style={styles.statusRow}>
-          <View style={styles.statusIconBox}>
-            <Ionicons name="shield-checkmark-outline" size={20} color={Colors.success} />
+        {/* 2. USER PROFILE HEADER */}
+        <View style={styles.profileHeaderSection}>
+          <View style={styles.profileInfoLeft}>
+            <Text style={styles.profileName}>{USER_PROFILE.fullName}</Text>
+            <Text style={styles.profileUpi}>UPI ID: {USER_PROFILE.upiId}</Text>
+            <Text style={styles.profilePhone}>{USER_PROFILE.phone}</Text>
+            
+            {/* [✓] UPI number Pill */}
+            <TouchableOpacity
+              style={styles.upiNumberPill}
+              activeOpacity={0.7}
+              onPress={() => openSimpleModal('UPI Number', `Your mobile number ${USER_PROFILE.phone} is linked to receive money on G Pay.nu.`, 'checkmark-circle')}>
+              <Ionicons name="checkmark-circle" size={16} color="#8AB4F8" style={{ marginRight: 6 }} />
+              <Text style={styles.upiNumberText}>UPI number</Text>
+            </TouchableOpacity>
           </View>
-          <View style={styles.statusDetails}>
-            <Text style={styles.statusTitle}>Current Session Method</Text>
-            <Text style={styles.statusSub}>
-              Unlocked via{' '}
-              <Text style={{ color: Colors.primary, fontWeight: '700' }}>
-                {authMethodUsed === 'biometric' ? 'Android Biometrics' : 'Security PIN'}
-              </Text>
-            </Text>
+
+          {/* Profile Photo Avatar with Mini QR Overlay */}
+          <TouchableOpacity
+            style={styles.avatarWrapper}
+            activeOpacity={0.8}
+            onPress={() => setShowQrModal(true)}>
+            <View style={styles.avatarCircle}>
+              <Ionicons name="person" size={38} color="#FFFFFF" />
+            </View>
+            <View style={styles.qrBadgeCircle}>
+              <Ionicons name="qr-code" size={14} color="#131313" />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* 3. REWARDS & REFERRAL DUAL CARDS */}
+        <View style={styles.rewardsRow}>
+          {/* Card 1: 16 rewards / View now */}
+          <TouchableOpacity
+            style={[styles.rewardCard, { backgroundColor: '#382554' }]}
+            activeOpacity={0.8}
+            onPress={() => setShowRewardsModal(true)}>
+            <Ionicons name="star" size={20} color="#E8DEF8" style={{ marginBottom: 8 }} />
+            <Text style={styles.rewardCardTitle}>16 rewards</Text>
+            <Text style={styles.rewardCardSub}>View now</Text>
+          </TouchableOpacity>
+
+          {/* Card 2: Get ₹121 / Refer a friend */}
+          <TouchableOpacity
+            style={[styles.rewardCard, { backgroundColor: '#1C3B43' }]}
+            activeOpacity={0.8}
+            onPress={() => setShowReferralModal(true)}>
+            <Ionicons name="people" size={20} color="#A7F3D0" style={{ marginBottom: 8 }} />
+            <Text style={styles.rewardCardTitle}>Get ₹121</Text>
+            <Text style={styles.rewardCardSub}>Refer a friend</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 4. "SET UP PAYMENT METHODS 1/3" SECTION */}
+        <View style={styles.paymentMethodsCard}>
+          <TouchableOpacity
+            style={styles.paymentMethodsHeader}
+            activeOpacity={0.7}
+            onPress={() => openSimpleModal('Payment Methods', 'Manage your linked bank accounts and credit cards.', 'card-outline')}>
+            <Text style={styles.paymentMethodsTitle}>Set up payment methods 1/3</Text>
+            <Ionicons name="chevron-forward" size={18} color="#8AB4F8" />
+          </TouchableOpacity>
+
+          <View style={styles.methodsRow}>
+            {/* Bank account */}
+            <TouchableOpacity
+              style={styles.methodItem}
+              activeOpacity={0.7}
+              onPress={() => openSimpleModal('Bank Accounts', 'Indian Bank (••••3526) is linked as your primary demo account.', 'business')}>
+              <View style={[styles.methodCircle, { borderColor: 'rgba(255, 255, 255, 0.2)' }]}>
+                <Ionicons name="business" size={22} color="#8AB4F8" />
+              </View>
+              <Text style={styles.methodLabel}>Bank account</Text>
+              <Text style={styles.methodSub}>1 account</Text>
+            </TouchableOpacity>
+
+            {/* RuPay credit card */}
+            <TouchableOpacity
+              style={styles.methodItem}
+              activeOpacity={0.7}
+              onPress={() => openSimpleModal('RuPay Credit Card', 'Link your RuPay credit card on UPI for seamless payments.', 'card')}>
+              <View style={[styles.methodCircle, { backgroundColor: '#0B57D0', borderColor: 'transparent' }]}>
+                <Ionicons name="card" size={20} color="#FFFFFF" />
+                <View style={styles.plusBadge}>
+                  <Ionicons name="add" size={12} color="#FFFFFF" />
+                </View>
+              </View>
+              <Text style={styles.methodLabel}>RuPay credit{'\n'}card</Text>
+              <Text style={styles.methodSub}>Pay with UPI</Text>
+            </TouchableOpacity>
+
+            {/* UPI Lite */}
+            <TouchableOpacity
+              style={styles.methodItem}
+              activeOpacity={0.7}
+              onPress={() => openSimpleModal('UPI Lite', 'Load up to ₹2,000 for instant, PIN-free payments.', 'flash')}>
+              <View style={[styles.methodCircle, { backgroundColor: '#0B57D0', borderColor: 'transparent' }]}>
+                <Ionicons name="flash" size={20} color="#FFFFFF" />
+                <View style={styles.plusBadge}>
+                  <Ionicons name="add" size={12} color="#FFFFFF" />
+                </View>
+              </View>
+              <Text style={styles.methodLabel}>UPI Lite</Text>
+              <Text style={styles.methodSub}>Pay PIN-free</Text>
+            </TouchableOpacity>
           </View>
-          <View style={styles.activePill}>
-            <Text style={styles.activePillText}>AUTHENTICATED</Text>
-          </View>
         </View>
 
-        <View style={styles.divider} />
+        {/* 5. MENU LIST ITEMS MATCHING SCREENSHOT 1 */}
+        <View style={styles.menuListSection}>
+          {/* Pay with credit or debit cards */}
+          <TouchableOpacity
+            style={styles.menuListItem}
+            activeOpacity={0.7}
+            onPress={() => openSimpleModal('Credit or Debit Cards', 'Add a card for online and tap-to-pay payments.', 'card-outline')}>
+            <View style={styles.menuLeft}>
+              <Ionicons name="card-outline" size={22} color="#FFFFFF" style={styles.menuIcon} />
+              <View>
+                <Text style={styles.menuTitle}>Pay with credit or debit cards</Text>
+                <Text style={styles.menuSub}>Pay bills with your card</Text>
+              </View>
+            </View>
+            <Text style={styles.menuActionBlue}>Add</Text>
+          </TouchableOpacity>
 
-        {/* Hardware & TEE */}
-        <View style={styles.statusRow}>
-          <View style={styles.statusIconBox}>
-            <Ionicons name="hardware-chip-outline" size={20} color={Colors.textSecondary} />
-          </View>
-          <View style={styles.statusDetails}>
-            <Text style={styles.statusTitle}>Keyguard Execution</Text>
-            <Text style={styles.statusSub}>Realme P4 (RMX5110) • Android 16 TEE</Text>
-          </View>
-        </View>
-      </View>
+          {/* Your QR code */}
+          <TouchableOpacity
+            style={styles.menuListItem}
+            activeOpacity={0.7}
+            onPress={() => setShowQrModal(true)}>
+            <View style={styles.menuLeft}>
+              <Ionicons name="qr-code-outline" size={22} color="#FFFFFF" style={styles.menuIcon} />
+              <View>
+                <Text style={styles.menuTitle}>Your QR code</Text>
+                <Text style={styles.menuSub}>Use to receive money from any UPI app</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
 
-      {/* Simulator Architecture & Privacy Card */}
-      <Text style={styles.sectionTitle}>Privacy & Offline Architecture</Text>
-      <View style={[CommonStyles.card, styles.card]}>
-        <View style={styles.archRow}>
-          <Ionicons name="server-outline" size={18} color={Colors.primary} />
-          <View style={styles.archDetails}>
-            <Text style={styles.archTitle}>100% Local SQLite Execution</Text>
-            <Text style={styles.archDesc}>
-              Zero external network servers or cloud data sync. All ledger entries, contacts,
-              and settings reside exclusively in local encrypted storage.
-            </Text>
-          </View>
+          {/* Autopay */}
+          <TouchableOpacity
+            style={styles.menuListItem}
+            activeOpacity={0.7}
+            onPress={() => openSimpleModal('Autopay', 'No pending autopay requests found for your account.', 'repeat-outline')}>
+            <View style={styles.menuLeft}>
+              <Ionicons name="repeat-outline" size={22} color="#FFFFFF" style={styles.menuIcon} />
+              <View>
+                <Text style={styles.menuTitle}>Autopay</Text>
+                <Text style={styles.menuSub}>No pending requests</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Set up pocket money */}
+          <TouchableOpacity
+            style={styles.menuListItem}
+            activeOpacity={0.7}
+            onPress={() => openSimpleModal('Pocket Money', 'Help your family pay without needing a separate bank account.', 'heart-outline')}>
+            <View style={styles.menuLeft}>
+              <Ionicons name="heart-outline" size={22} color="#FFFFFF" style={styles.menuIcon} />
+              <View>
+                <Text style={styles.menuTitle}>Set up pocket money</Text>
+                <Text style={styles.menuSub}>Help your family pay without a bank account</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Settings */}
+          <TouchableOpacity
+            style={styles.menuListItem}
+            activeOpacity={0.7}
+            onPress={() => setShowSettingsModal(true)}>
+            <View style={styles.menuLeft}>
+              <Ionicons name="settings-outline" size={22} color="#FFFFFF" style={styles.menuIcon} />
+              <Text style={styles.menuTitle}>Settings</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Manage Google account */}
+          <TouchableOpacity
+            style={styles.menuListItem}
+            activeOpacity={0.7}
+            onPress={() => openSimpleModal('Manage Account', `Logged in as ${USER_PROFILE.fullName} (${USER_PROFILE.upiId}).`, 'person-outline')}>
+            <View style={styles.menuLeft}>
+              <Ionicons name="person-outline" size={22} color="#FFFFFF" style={styles.menuIcon} />
+              <Text style={styles.menuTitle}>Manage Google account</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Get help */}
+          <TouchableOpacity
+            style={styles.menuListItem}
+            activeOpacity={0.7}
+            onPress={() => openSimpleModal('Get Help', 'G Pay.nu simulated customer support & FAQs.', 'help-circle-outline')}>
+            <View style={styles.menuLeft}>
+              <Ionicons name="help-circle-outline" size={22} color="#FFFFFF" style={styles.menuIcon} />
+              <Text style={styles.menuTitle}>Get help</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Language */}
+          <TouchableOpacity
+            style={styles.menuListItem}
+            activeOpacity={0.7}
+            onPress={() => openSimpleModal('Language', 'Current language: English (India).', 'globe-outline')}>
+            <View style={styles.menuLeft}>
+              <Ionicons name="globe-outline" size={22} color="#FFFFFF" style={styles.menuIcon} />
+              <View>
+                <Text style={styles.menuTitle}>Language</Text>
+                <Text style={styles.menuSub}>English</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.divider} />
+      </ScrollView>
 
-        <View style={styles.archRow}>
-          <Ionicons name="shield-outline" size={18} color={Colors.warning} />
-          <View style={styles.archDetails}>
-            <Text style={styles.archTitle}>Independent Demo Simulator</Text>
-            <Text style={styles.archDesc}>
-              This application has zero connectivity to NPCI, banks, UPI switches, or real
-              monetary payment rails. No real currency is ever transferred.
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.divider} />
-
-        <View style={styles.archRow}>
-          <Ionicons name="eye-off-outline" size={18} color={Colors.textSecondary} />
-          <View style={styles.archDetails}>
-            <Text style={styles.archTitle}>Zero Telemetry & Tracking</Text>
-            <Text style={styles.archDesc}>
-              No tracking identifiers, analytics payloads, or external crash reporters are
-              bundled with this standalone build.
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Prototype Identity Card */}
-      <Text style={styles.sectionTitle}>System Identity</Text>
-      <View style={[CommonStyles.card, styles.card]}>
-        <View style={styles.infoLine}>
-          <Text style={styles.infoLabel}>Application Name:</Text>
-          <Text style={styles.infoValue}>G Pay.nu</Text>
-        </View>
-        <View style={styles.infoLine}>
-          <Text style={styles.infoLabel}>Build Pipeline:</Text>
-          <Text style={styles.infoValue}>Master Phase 11 (Security & PIN)</Text>
-        </View>
-        <View style={styles.infoLine}>
-          <Text style={styles.infoLabel}>Target Device:</Text>
-          <Text style={styles.infoValue}>Realme P4 (RMX5110)</Text>
-        </View>
-        <View style={styles.infoLine}>
-          <Text style={styles.infoLabel}>Database Engine:</Text>
-          <Text style={styles.infoValue}>Expo SQLite v15</Text>
-        </View>
-        <View style={styles.infoLine}>
-          <Text style={styles.infoLabel}>Banking Status:</Text>
-          <Text style={[styles.infoValue, { color: Colors.textTertiary }]}>
-            Disconnected (Zero Access)
-          </Text>
-        </View>
-      </View>
-
-      {/* Lock Simulator Button */}
-      <TouchableOpacity
-        style={[CommonStyles.secondaryButton, styles.lockButton]}
-        activeOpacity={0.8}
-        onPress={onLock}>
-        <Ionicons
-          name="lock-closed-outline"
-          size={18}
-          color={Colors.danger}
-          style={{ marginRight: 8 }}
-        />
-        <Text style={styles.lockText}>Lock Simulator Session</Text>
-      </TouchableOpacity>
-
-      {/* ================= EDIT PROFILE MODAL ================= */}
+      {/* QR CODE MODAL */}
       <Modal
-        visible={editProfileVisible}
+        visible={showQrModal}
         transparent
         animationType="slide"
-        onRequestClose={() => setEditProfileVisible(false)}>
+        onRequestClose={() => setShowQrModal(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Demo Profile</Text>
-              <TouchableOpacity onPress={() => setEditProfileVisible(false)}>
-                <Ionicons name="close" size={24} color={Colors.textSecondary} />
+              <Text style={styles.modalHeading}>Your UPI QR Code</Text>
+              <TouchableOpacity onPress={() => setShowQrModal(false)}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-
-            <Text style={styles.fieldLabel}>Display Name</Text>
-            <TextInput
-              style={styles.textInput}
-              value={tempName}
-              onChangeText={setTempName}
-              placeholder="e.g. Kaviraj K."
-              placeholderTextColor={Colors.textTertiary}
-            />
-
-            <Text style={styles.fieldLabel}>Masked Phone Number</Text>
-            <TextInput
-              style={styles.textInput}
-              value={tempPhone}
-              onChangeText={setTempPhone}
-              placeholder="e.g. +91 98•••• 1234"
-              placeholderTextColor={Colors.textTertiary}
-            />
-
-            <Text style={styles.fieldLabel}>Virtual UPI ID</Text>
-            <TextInput
-              style={styles.textInput}
-              value={tempUpi}
-              onChangeText={setTempUpi}
-              placeholder="e.g. kaviraj@nuwallet"
-              placeholderTextColor={Colors.textTertiary}
-            />
-
-            <View style={styles.modalActionRow}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setEditProfileVisible(false)}>
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalSaveBtn}
-                onPress={handleSaveProfile}>
-                <Text style={styles.modalSaveText}>Save Changes</Text>
-              </TouchableOpacity>
+            <View style={styles.qrModalBody}>
+              <View style={styles.qrCodeBox}>
+                <Ionicons name="qr-code" size={180} color="#131313" />
+              </View>
+              <Text style={styles.qrNameText}>{USER_PROFILE.fullName}</Text>
+              <Text style={styles.qrUpiText}>{USER_PROFILE.upiId}</Text>
+              <Text style={styles.qrPhoneText}>Scan with any UPI app to pay</Text>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* ================= CHANGE PIN MODAL ================= */}
+      {/* REWARDS MODAL */}
       <Modal
-        visible={changePinVisible}
+        visible={showRewardsModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowRewardsModal(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeading}>16 Rewards Available</Text>
+              <TouchableOpacity onPress={() => setShowRewardsModal(false)}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.cibilModalContent}>
+              <Ionicons name="gift" size={54} color="#FBBC04" style={{ marginBottom: 12 }} />
+              <Text style={styles.scoreNumber}>₹1,240 Won</Text>
+              <Text style={styles.scoreRating}>16 Active Coupons &amp; Scratch Cards</Text>
+              <Text style={styles.scoreDesc}>
+                Earned via simulated transactions on G Pay.nu. Scratch to reveal brand discounts!
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* REFERRAL MODAL */}
+      <Modal
+        visible={showReferralModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReferralModal(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeading}>Invite Friends &amp; Get ₹121</Text>
+              <TouchableOpacity onPress={() => setShowReferralModal(false)}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.cibilModalContent}>
+              <Ionicons name="people" size={54} color="#81C995" style={{ marginBottom: 12 }} />
+              <Text style={styles.scoreNumber}>GPAYNU27</Text>
+              <Text style={styles.scoreRating}>Your Referral Code</Text>
+              <Text style={styles.scoreDesc}>
+                Get ₹121 cashback after each friend sends their first payment using G Pay.nu simulation.
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* SETTINGS MODAL */}
+      <Modal
+        visible={showSettingsModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowSettingsModal(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeading}>Settings &amp; Security</Text>
+              <TouchableOpacity onPress={() => setShowSettingsModal(false)}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            
+            {/* Theme Toggle */}
+            <View style={styles.settingsRow}>
+              <View>
+                <Text style={styles.settingsLabel}>Dark Mode</Text>
+                <Text style={styles.settingsSub}>Google Pay true dark theme</Text>
+              </View>
+              <Switch
+                value={isDark}
+                onValueChange={toggleTheme}
+                trackColor={{ false: '#3C4043', true: '#0B57D0' }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+
+            {/* Change PIN */}
+            <TouchableOpacity
+              style={styles.settingsBtnRow}
+              onPress={() => setChangePinVisible(!changePinVisible)}>
+              <Text style={styles.settingsLabel}>Change 4-Digit Security PIN</Text>
+              <Ionicons name={changePinVisible ? 'chevron-up' : 'chevron-down'} size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            {changePinVisible && (
+              <View style={styles.pinForm}>
+                <TextInput
+                  style={styles.pinInput}
+                  placeholder="Current PIN (e.g. 1234)"
+                  placeholderTextColor="#9AA0A6"
+                  secureTextEntry
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  value={currentPinInput}
+                  onChangeText={setCurrentPinInput}
+                />
+                <TextInput
+                  style={styles.pinInput}
+                  placeholder="New 4-Digit PIN"
+                  placeholderTextColor="#9AA0A6"
+                  secureTextEntry
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  value={newPinInput}
+                  onChangeText={setNewPinInput}
+                />
+                {pinError && <Text style={styles.pinErrorText}>{pinError}</Text>}
+                <TouchableOpacity style={styles.savePinBtn} onPress={handleChangePin}>
+                  <Text style={styles.savePinBtnText}>Save New PIN</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Lock Simulator Button */}
+            <TouchableOpacity
+              style={styles.lockSimulatorBtn}
+              onPress={() => {
+                setShowSettingsModal(false);
+                lockSimulator();
+              }}>
+              <Ionicons name="lock-closed" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.lockSimulatorBtnText}>Lock Simulator</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* GENERIC ACTION MODAL */}
+      <Modal
+        visible={modalItem !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalItem(null)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeading}>{modalItem?.title}</Text>
+              <TouchableOpacity onPress={() => setModalItem(null)}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.cibilModalContent}>
+              <Ionicons name={(modalItem?.icon as any) || 'information-circle'} size={48} color="#8AB4F8" style={{ marginBottom: 12 }} />
+              <Text style={styles.scoreDesc}>{modalItem?.desc}</Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* THREE-DOT OVERFLOW MENU MODAL */}
+      <Modal
+        visible={showOverflowMenu}
         transparent
         animationType="fade"
-        onRequestClose={() => setChangePinVisible(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Change Security PIN</Text>
-              <TouchableOpacity onPress={() => setChangePinVisible(false)}>
-                <Ionicons name="close" size={24} color={Colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.modalSubtitle}>
-              Configure your 4-digit security PIN used for offline transaction authorization
-              and biometric fallback.
-            </Text>
-
-            <Text style={styles.fieldLabel}>Current 4-Digit PIN</Text>
-            <TextInput
-              style={styles.textInput}
-              value={currentPinInput}
-              onChangeText={setCurrentPinInput}
-              keyboardType="number-pad"
-              maxLength={4}
-              secureTextEntry
-              placeholder="Enter current PIN (e.g. 1234)"
-              placeholderTextColor={Colors.textTertiary}
-            />
-
-            <Text style={styles.fieldLabel}>New 4-Digit PIN</Text>
-            <TextInput
-              style={styles.textInput}
-              value={newPinInput}
-              onChangeText={setNewPinInput}
-              keyboardType="number-pad"
-              maxLength={4}
-              secureTextEntry
-              placeholder="Enter new 4 digits"
-              placeholderTextColor={Colors.textTertiary}
-            />
-
-            <Text style={styles.fieldLabel}>Confirm New PIN</Text>
-            <TextInput
-              style={styles.textInput}
-              value={confirmPinInput}
-              onChangeText={setConfirmPinInput}
-              keyboardType="number-pad"
-              maxLength={4}
-              secureTextEntry
-              placeholder="Re-enter new 4 digits"
-              placeholderTextColor={Colors.textTertiary}
-            />
-
-            {pinError && (
-              <View style={styles.errorBanner}>
-                <Ionicons name="alert-circle" size={16} color={Colors.danger} />
-                <Text style={styles.errorBannerText}>{pinError}</Text>
-              </View>
-            )}
-
-            {pinSuccessMsg && (
-              <View style={styles.successBanner}>
-                <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
-                <Text style={styles.successBannerText}>{pinSuccessMsg}</Text>
-              </View>
-            )}
-
-            <View style={styles.modalActionRow}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setChangePinVisible(false)}>
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalSaveBtn}
-                onPress={handleChangePinSubmit}>
-                <Text style={styles.modalSaveText}>Update PIN</Text>
-              </TouchableOpacity>
-            </View>
+        onRequestClose={() => setShowOverflowMenu(false)}>
+        <TouchableOpacity
+          style={styles.menuBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowOverflowMenu(false)}>
+          <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowOverflowMenu(false);
+                openSimpleModal('Get Help', 'G Pay.nu account help & simulated documentation.', 'help-circle');
+              }}>
+              <Text style={styles.menuItemText}>Get help</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowOverflowMenu(false);
+                Alert.alert('Send Feedback', 'User feedback simulation.');
+              }}>
+              <Text style={styles.menuItemText}>Send feedback</Text>
+            </TouchableOpacity>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
-    </ScrollView>
+
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.xxxl,
+    flex: 1,
   },
-  profileHeader: {
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
+  scrollContent: {
+    paddingBottom: 40,
   },
-  avatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-    borderWidth: 3,
-    borderColor: Colors.borderLight,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
+  headerArtWrapper: {
+    position: 'relative',
+    width: '100%',
   },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: Colors.textInverse,
+  overflowBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    padding: 8,
+    zIndex: 10,
+  },
+  profileHeaderSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 20,
+  },
+  profileInfoLeft: {
+    flex: 1,
   },
   profileName: {
-    ...Typography.title1,
-    color: Colors.textPrimary,
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
   profileUpi: {
-    fontSize: 13,
-    color: Colors.primary,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  profilePhone: {
-    fontSize: 12,
-    color: Colors.textTertiary,
-    marginTop: 2,
-  },
-  editProfileBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceSubtle,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  editProfileBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  sectionTitle: {
-    ...Typography.title2,
-    fontSize: 15,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.md,
-  },
-  card: {
-    padding: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  statusIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surfaceSubtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  statusDetails: {
-    flex: 1,
-  },
-  statusTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  statusSub: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    marginTop: 1,
-  },
-  activePill: {
-    backgroundColor: Colors.successSurface,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: BorderRadius.full,
-  },
-  activePillText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: Colors.success,
-  },
-  pinActionBtn: {
-    padding: 8,
-    marginRight: 6,
-  },
-  changePinBtn: {
-    backgroundColor: Colors.surfaceSubtle,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
-  },
-  changePinBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.primary,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: 10,
-  },
-  archRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    paddingVertical: 6,
-  },
-  archDetails: {
-    flex: 1,
-  },
-  archTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.textPrimary,
+    fontSize: 14,
+    color: '#9AA0A6',
     marginBottom: 2,
   },
-  archDesc: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    lineHeight: 16,
+  profilePhone: {
+    fontSize: 14,
+    color: '#9AA0A6',
+    marginBottom: 12,
   },
-  infoLine: {
+  upiNumberPill: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#004A77',
+    paddingHorizontal: 12,
     paddingVertical: 6,
+    borderRadius: 16,
   },
-  infoLabel: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-  },
-  infoValue: {
+  upiNumberText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: '#C2E7FF',
   },
-  lockButton: {
-    width: '100%',
-    backgroundColor: Colors.dangerSurface,
-    borderColor: Colors.dangerBorder,
-    marginTop: Spacing.lg,
+  avatarWrapper: {
+    position: 'relative',
+    marginLeft: 16,
   },
-  lockText: {
-    color: Colors.danger,
+  avatarCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#2A2C34',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  qrBadgeCircle: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#131313',
+  },
+  rewardsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 12,
+    marginBottom: 20,
+  },
+  rewardCard: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 16,
+  },
+  rewardCardTitle: {
+    fontSize: 16,
     fontWeight: '700',
-    fontSize: 14,
+    color: '#FFFFFF',
+    marginBottom: 2,
   },
-  // Modal styles
+  rewardCardSub: {
+    fontSize: 12,
+    color: '#E8EAED',
+  },
+  paymentMethodsCard: {
+    marginHorizontal: 16,
+    backgroundColor: '#1E1F21',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  paymentMethodsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  paymentMethodsTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  methodsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  methodItem: {
+    alignItems: 'center',
+    width: '30%',
+  },
+  methodCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    borderWidth: 1,
+    position: 'relative',
+  },
+  plusBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#1A73E8',
+    borderWidth: 2,
+    borderColor: '#1E1F21',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  methodLabel: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  methodSub: {
+    fontSize: 10,
+    color: '#9AA0A6',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  menuListSection: {
+    paddingHorizontal: 16,
+  },
+  menuListItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  menuLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  menuIcon: {
+    marginRight: 16,
+  },
+  menuTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#FFFFFF',
+  },
+  menuSub: {
+    fontSize: 12,
+    color: '#9AA0A6',
+    marginTop: 2,
+  },
+  menuActionBlue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#8AB4F8',
+  },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(5, 8, 14, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.screenPadding,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
   },
-  modalContent: {
-    width: '100%',
-    maxWidth: 380,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
+  modalCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: 16,
   },
-  modalTitle: {
+  modalHeading: {
     fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  cibilModalContent: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  scoreNumber: {
+    fontSize: 26,
     fontWeight: '800',
-    color: Colors.textPrimary,
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.md,
-    lineHeight: 17,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginTop: 10,
+    color: '#FFFFFF',
     marginBottom: 4,
   },
-  textInput: {
-    backgroundColor: Colors.surfaceSubtle,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+  scoreRating: {
     fontSize: 14,
-    color: Colors.textPrimary,
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.dangerSurface,
-    borderWidth: 1,
-    borderColor: Colors.dangerBorder,
-    padding: 8,
-    borderRadius: BorderRadius.sm,
-    marginTop: 12,
-  },
-  errorBannerText: {
-    fontSize: 12,
-    color: Colors.danger,
-    fontWeight: '600',
-    flex: 1,
-  },
-  successBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.successSurface,
-    borderWidth: 1,
-    borderColor: Colors.successBorder,
-    padding: 8,
-    borderRadius: BorderRadius.sm,
-    marginTop: 12,
-  },
-  successBannerText: {
-    fontSize: 12,
-    color: Colors.success,
     fontWeight: '700',
-    flex: 1,
+    color: '#81C995',
+    marginBottom: 10,
   },
-  modalActionRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-    marginTop: Spacing.lg,
-  },
-  modalCancelBtn: {
+  scoreDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#9AA0A6',
+    textAlign: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: BorderRadius.md,
   },
-  modalCancelText: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    fontWeight: '600',
+  qrModalBody: {
+    alignItems: 'center',
+    paddingVertical: 16,
   },
-  modalSaveBtn: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: BorderRadius.md,
+  qrCodeBox: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 16,
   },
-  modalSaveText: {
-    fontSize: 14,
-    color: Colors.textInverse,
+  qrNameText: {
+    fontSize: 18,
     fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  qrUpiText: {
+    fontSize: 14,
+    color: '#8AB4F8',
+    marginBottom: 8,
+  },
+  qrPhoneText: {
+    fontSize: 12,
+    color: '#9AA0A6',
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  settingsLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  settingsSub: {
+    fontSize: 12,
+    color: '#9AA0A6',
+    marginTop: 2,
+  },
+  settingsBtnRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  pinForm: {
+    paddingVertical: 12,
+    gap: 10,
+  },
+  pinInput: {
+    backgroundColor: '#2A2C34',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: '#FFFFFF',
+  },
+  pinErrorText: {
+    fontSize: 12,
+    color: '#F28B82',
+  },
+  savePinBtn: {
+    backgroundColor: '#0B57D0',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  savePinBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  lockSimulatorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: '#EF4444',
+  },
+  lockSimulatorBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#EF4444',
+  },
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    alignItems: 'flex-end',
+    paddingTop: 50,
+    paddingRight: 16,
+  },
+  menuCard: {
+    width: 160,
+    borderRadius: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  menuItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  menuItemText: {
+    fontSize: 14,
+    color: '#FFFFFF',
   },
 });

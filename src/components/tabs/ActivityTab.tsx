@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   filterChipActive: {
-    backgroundColor: 'rgba(0, 210, 255, 0.15)',
+    backgroundColor: 'rgba(11, 87, 208, 0.08)',
     borderColor: Colors.primary,
   },
   filterText: {
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
   },
   itemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: Colors.border,
   },
   iconContainer: {
     width: 40,
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     marginRight: Spacing.md,
   },
   iconDebit: {
-    backgroundColor: 'rgba(0, 210, 255, 0.1)',
+    backgroundColor: 'rgba(11, 87, 208, 0.08)',
   },
   iconCredit: {
     backgroundColor: 'rgba(16, 231, 195, 0.12)',
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: BorderRadius.xs,
-    backgroundColor: 'rgba(0, 210, 255, 0.1)',
+    backgroundColor: 'rgba(11, 87, 208, 0.08)',
   },
   statusText: {
     fontSize: 9,
@@ -473,15 +473,15 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalCard: {
-    backgroundColor: '#121826',
+    backgroundColor: Colors.surface,
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: 'rgba(0, 210, 255, 0.2)',
+    borderColor: Colors.border,
     maxHeight: '85%',
   },
   modalHeader: {
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: Colors.border,
   },
   modalTitle: {
     ...Typography.title2,
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: 4,
     borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(0, 210, 255, 0.1)',
+    backgroundColor: 'rgba(11, 87, 208, 0.08)',
     marginTop: 6,
   },
   modalSimText: {
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   modalDetailsGroup: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.surfaceVariant,
     borderRadius: BorderRadius.xl,
     padding: Spacing.md,
     gap: 8,
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceSubtle,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: Colors.border,
     padding: Spacing.md,
     alignItems: 'center',
   },
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
   safeNotice: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 210, 255, 0.06)',
+    backgroundColor: 'rgba(11, 87, 208, 0.06)',
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     gap: 10,
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
   modalFooter: {
     padding: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: Colors.border,
   },
   modalDoneBtn: {
     height: 48,

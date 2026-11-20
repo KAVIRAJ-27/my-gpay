@@ -940,7 +940,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: Colors.border,
   },
   navIconButton: {
     padding: Spacing.xs,
@@ -954,9 +954,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
     borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(0, 210, 255, 0.1)',
+    backgroundColor: 'rgba(11, 87, 208, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(0, 210, 255, 0.25)',
+    borderColor: 'rgba(11, 87, 208, 0.25)',
   },
   changeContactText: {
     ...Typography.caption,
@@ -980,7 +980,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(0, 210, 255, 0.15)',
+    backgroundColor: 'rgba(11, 87, 208, 0.08)',
     borderWidth: 1.5,
     borderColor: Colors.primary,
     alignItems: 'center',
@@ -1016,7 +1016,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: BorderRadius.xs,
-    backgroundColor: 'rgba(0, 210, 255, 0.12)',
+    backgroundColor: 'rgba(11, 87, 208, 0.08)',
     gap: 2,
   },
   phoneBadgeText: {
@@ -1121,7 +1121,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     paddingTop: Spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.04)',
+    borderTopColor: Colors.border,
   },
   noteSuggestions: {
     flexDirection: 'row',
@@ -1132,10 +1132,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: Colors.surfaceVariant,
   },
   noteSuggestionChipActive: {
-    backgroundColor: 'rgba(0, 210, 255, 0.18)',
+    backgroundColor: 'rgba(11, 87, 208, 0.08)',
     borderWidth: 1,
     borderColor: Colors.primary,
   },
@@ -1170,7 +1170,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   continueButtonDisabled: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: Colors.surfaceVariant,
   },
   continueButtonText: {
     ...Typography.bodyBold,
@@ -1202,7 +1202,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: 'rgba(0, 210, 255, 0.15)',
+    backgroundColor: 'rgba(11, 87, 208, 0.08)',
     borderWidth: 2,
     borderColor: Colors.primary,
     alignItems: 'center',
@@ -1272,15 +1272,15 @@ const styles = StyleSheet.create({
   },
   detailDivider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: Colors.border,
     marginVertical: 4,
   },
   disclaimerCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(0, 210, 255, 0.08)',
+    backgroundColor: 'rgba(11, 87, 208, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(0, 210, 255, 0.25)',
+    borderColor: 'rgba(11, 87, 208, 0.25)',
     borderRadius: BorderRadius.xl,
     padding: Spacing.md,
     gap: Spacing.md,
@@ -1306,9 +1306,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: BorderRadius.xl,
-    backgroundColor: 'rgba(0, 210, 255, 0.06)',
+    backgroundColor: Colors.surfaceVariant,
     borderWidth: 1,
-    borderColor: 'rgba(0, 210, 255, 0.2)',
+    borderColor: Colors.border,
     gap: 6,
   },
   editText: {
@@ -1408,7 +1408,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   confirmExecuteBtnDisabled: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.surfaceVariant,
   },
   confirmExecuteBtnText: {
     ...Typography.bodyBold,
@@ -1422,7 +1422,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.border,
   },
   cancelBtnText: {
     ...Typography.body,
@@ -1461,7 +1461,7 @@ const styles = StyleSheet.create({
   watermarkBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 210, 255, 0.12)',
+    backgroundColor: 'rgba(11, 87, 208, 0.08)',
     borderWidth: 1.5,
     borderColor: Colors.primary,
     borderRadius: BorderRadius.full,
@@ -1535,7 +1535,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceSubtle,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: Colors.border,
     padding: Spacing.md,
     marginTop: Spacing.sm,
     alignItems: 'center',
@@ -1562,7 +1562,7 @@ const styles = StyleSheet.create({
   safeNoticeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.surfaceVariant,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     gap: 8,
@@ -1603,10 +1603,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    borderBottomColor: Colors.border,
   },
   selectorOptionActive: {
-    backgroundColor: 'rgba(0, 210, 255, 0.06)',
+    backgroundColor: 'rgba(11, 87, 208, 0.08)',
   },
   selectorOptionLabel: {
     fontSize: 11,

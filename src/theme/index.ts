@@ -1,8 +1,9 @@
 /**
  * G Pay.nu Design System - Unified Theme Export
+ * Google Pay inspired Material 3 styling
  */
 
-import { StyleSheet, ViewStyle } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Colors } from './colors';
 import { Spacing, BorderRadius } from './spacing';
 import { Typography } from './typography';
@@ -19,44 +20,44 @@ export const CommonStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   cardElevated: {
-    backgroundColor: Colors.backgroundElevated,
+    backgroundColor: Colors.surface,
     borderRadius: BorderRadius.xl,
     padding: Spacing.cardPadding,
     borderWidth: 1,
     borderColor: Colors.borderLight,
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   primaryButton: {
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: 14,
+    borderRadius: BorderRadius.full,
+    paddingVertical: 13,
     paddingHorizontal: 24,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
   },
   secondaryButton: {
     backgroundColor: Colors.surfaceSubtle,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    borderRadius: BorderRadius.full,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: Colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -77,8 +78,7 @@ export const CommonStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.badgeBorder,
     borderRadius: BorderRadius.full,
-    paddingVertical: 5,
-    paddingHorizontal: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
   },
 });
-

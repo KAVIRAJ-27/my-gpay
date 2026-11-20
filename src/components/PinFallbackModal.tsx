@@ -8,16 +8,18 @@ import {
   Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius, Typography, CommonStyles } from '@/theme';
+import { Spacing, BorderRadius, Typography } from '@/theme';
 import { verifySimulatedPIN, getActivePIN } from '@/services/auth';
+import { useTheme } from '@/context/ThemeContext';
 
 interface PinFallbackModalProps {
   visible: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (pin: string) => void;
 }
 
 export function PinFallbackModal({ visible, onClose, onSuccess }: PinFallbackModalProps) {
+  const { colors } = useTheme();
   const [pin, setPin] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
@@ -30,10 +32,11 @@ export function PinFallbackModal({ visible, onClose, onSuccess }: PinFallbackMod
       if (nextPin.length === 4) {
         const result = verifySimulatedPIN(nextPin);
         if (result.success) {
+          const finalPin = nextPin;
           setTimeout(() => {
             setPin('');
             setError(null);
-            onSuccess();
+            onSuccess(finalPin);
           }, 150);
         } else {
           setError(result.errorMessage || 'Incorrect PIN');
@@ -64,14 +67,31 @@ export function PinFallbackModal({ visible, onClose, onSuccess }: PinFallbackMod
       animationType="fade"
       onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+        <Pressable
+          style={[
+            styles.modalCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+          onPress={(e) => e.stopPropagation()}>
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="key-outline" size={24} color={Colors.primary} />
+            <View
+              style={[
+                styles.iconCircle,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.borderLight,
+                },
+              ]}>
+              <Ionicons name="key-outline" size={24} color={colors.primary} />
             </View>
-            <Text style={Typography.title1}>Enter Security PIN</Text>
-            <Text style={Typography.caption}>
+            <Text style={[Typography.title1, { color: colors.textPrimary }]}>
+              Enter Security PIN
+            </Text>
+            <Text style={[Typography.caption, { color: colors.textSecondary }]}>
               Biometric fallback for G Pay.nu
             </Text>
           </View>
@@ -85,21 +105,24 @@ export function PinFallbackModal({ visible, onClose, onSuccess }: PinFallbackMod
                   key={index}
                   style={[
                     styles.dot,
-                    isFilled && styles.dotFilled,
-                    error && styles.dotError,
+                    { borderColor: colors.border },
+                    isFilled && [styles.dotFilled, { backgroundColor: colors.primary, borderColor: colors.primary }],
+                    error ? [styles.dotError, { backgroundColor: colors.danger, borderColor: colors.danger }] : null,
                   ]}
                 />
               );
             })}
           </View>
 
-          {/* Error Message */}
+          {/* Error Message or Hint */}
           {error ? (
-            <Text style={styles.errorText}>{error}</Text>
+            <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>
           ) : (
-            <Text style={styles.hintText}>
-              Active test PIN: <Text style={styles.hintBold}>{getActivePIN()}</Text>
-            </Text>
+            <View style={[styles.hintPill, { backgroundColor: colors.badgeBackground }]}>
+              <Text style={[styles.hintText, { color: colors.badgeText }]}>
+                Active test PIN: <Text style={styles.hintBold}>{getActivePIN()}</Text>
+              </Text>
+            </View>
           )}
 
           {/* Keypad Grid */}
@@ -118,7 +141,9 @@ export function PinFallbackModal({ visible, onClose, onSuccess }: PinFallbackMod
                         key={key}
                         style={styles.actionKey}
                         onPress={handleClear}>
-                        <Text style={styles.actionKeyText}>CLEAR</Text>
+                        <Text style={[styles.actionKeyText, { color: colors.textSecondary }]}>
+                          CLEAR
+                        </Text>
                       </TouchableOpacity>
                     );
                   }
@@ -131,7 +156,7 @@ export function PinFallbackModal({ visible, onClose, onSuccess }: PinFallbackMod
                         <Ionicons
                           name="backspace-outline"
                           size={24}
-                          color={Colors.textSecondary}
+                          color={colors.textSecondary}
                         />
                       </TouchableOpacity>
                     );
@@ -139,10 +164,18 @@ export function PinFallbackModal({ visible, onClose, onSuccess }: PinFallbackMod
                   return (
                     <TouchableOpacity
                       key={key}
-                      style={styles.keyButton}
-                      activeOpacity={0.7}
+                      style={[
+                        styles.keyButton,
+                        {
+                          backgroundColor: colors.surfaceSubtle,
+                          borderColor: colors.borderLight,
+                        },
+                      ]}
+                      activeOpacity={0.6}
                       onPress={() => handleDigit(key)}>
-                      <Text style={styles.keyText}>{key}</Text>
+                      <Text style={[styles.keyText, { color: colors.textPrimary }]}>
+                        {key}
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -152,7 +185,7 @@ export function PinFallbackModal({ visible, onClose, onSuccess }: PinFallbackMod
 
           {/* Cancel */}
           <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-            <Text style={styles.cancelText}>Cancel</Text>
+            <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Cancel</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>
@@ -163,7 +196,7 @@ export function PinFallbackModal({ visible, onClose, onSuccess }: PinFallbackMod
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(5, 8, 14, 0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.screenPadding,
@@ -171,29 +204,25 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: Colors.surface,
     borderRadius: BorderRadius.xxl,
     padding: Spacing.xl,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
     alignItems: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+    elevation: 8,
   },
   header: {
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   iconCircle: {
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 48,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceSubtle,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.sm,
@@ -209,41 +238,36 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     borderWidth: 1.5,
-    borderColor: Colors.borderLight,
     backgroundColor: 'transparent',
   },
   dotFilled: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
   },
-  dotError: {
-    backgroundColor: Colors.danger,
-    borderColor: Colors.danger,
-  },
+  dotError: {},
   errorText: {
-    color: Colors.danger,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     marginBottom: Spacing.md,
     textAlign: 'center',
   },
-  hintText: {
-    color: Colors.textTertiary,
-    fontSize: 12,
+  hintPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
     marginBottom: Spacing.md,
+  },
+  hintText: {
+    fontSize: 12,
     textAlign: 'center',
   },
   hintBold: {
-    color: Colors.primary,
     fontWeight: '700',
   },
   keypad: {
     width: '100%',
-    marginVertical: Spacing.sm,
+    marginVertical: Spacing.xs,
   },
   keyRow: {
     flexDirection: 'row',
@@ -252,22 +276,19 @@ const styles = StyleSheet.create({
   },
   keyButton: {
     width: 68,
-    height: 60,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.surfaceSubtle,
+    height: 56,
+    borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: Colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
   keyText: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '600',
-    color: Colors.textPrimary,
   },
   actionKey: {
     width: 68,
-    height: 60,
+    height: 56,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -275,17 +296,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.5,
-    color: Colors.textSecondary,
   },
   cancelButton: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
     paddingVertical: 10,
     paddingHorizontal: 20,
   },
   cancelText: {
-    color: Colors.textSecondary,
     fontSize: 14,
     fontWeight: '600',
   },
 });
-

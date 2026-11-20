@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, BackHandler, Alert } from 'react-native';
+import { View, StyleSheet, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Colors } from '@/theme';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { AuthScreen } from '@/components/AuthScreen';
 import { HomeDashboard } from '@/components/HomeDashboard';
 import { MoneyTab } from '@/components/tabs/MoneyTab';
@@ -22,6 +22,7 @@ import {
 
 export default function MainAppScreen() {
   const { isAuthenticated, lockSimulator } = useAuth();
+  const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState<TabKey>('home');
   const [detailModalItem, setDetailModalItem] = useState<QuickActionItem | null>(null);
   const [demoBalance, setDemoBalance] = useState<number>(USER_PROFILE.demoBalance);
@@ -92,8 +93,8 @@ export default function MainAppScreen() {
 
   // Once authenticated, render Dashboard with Bottom Navigation
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Tab Content */}
         <View style={styles.content}>
           {activeTab === 'home' && (
@@ -156,11 +157,9 @@ export default function MainAppScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   content: {
     flex: 1,

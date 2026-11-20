@@ -1,9 +1,10 @@
 /**
  * G Pay.nu - Mock Simulation Data
+ * Exact values matching the user reference screenshots.
  * 
  * IMPORTANT:
- * All entries in this file are strictly fictional for local prototype simulation.
- * No real phone numbers, bank accounts, or financial transactions are referenced.
+ * All entries in this file are strictly for local offline prototype simulation.
+ * No real banking or UPI integration is performed.
  */
 
 export interface FictionalContact {
@@ -27,111 +28,140 @@ export interface DemoActivity {
 
 export const USER_PROFILE = {
   name: 'Kaviraj',
-  fullName: 'Kaviraj K.',
-  upiId: 'kaviraj@nuwallet',
-  phoneMasked: '+91 98•••• 1234',
+  fullName: 'KAVIRAJ. R',
+  upiId: 'kaviraj5440@oksbi',
+  phone: '8220249634',
+  phoneMasked: '8220249634',
   demoBalance: 24850.00,
   currency: 'INR',
   currencySymbol: '₹',
-  accountNumberMasked: '•••• •••• 5842',
-  bankName: 'Axis Demo Bank',
+  accountNumberMasked: '••••3526',
+  bankName: 'Indian Bank',
 };
 
 export const FICTIONAL_CONTACTS: FictionalContact[] = [
   {
     id: 'c1',
-    name: 'Alex Rivera',
-    handle: 'alex.r@nu',
-    avatarColor: '#6366F1',
-    initials: 'AR',
+    name: 'Kaja Mutton Stall',
+    handle: 'kajamutton@oksbi',
+    avatarColor: '#8E24AA', // Purple
+    initials: 'K',
   },
   {
     id: 'c2',
-    name: 'Priya Sharma',
-    handle: 'priya.s@nu',
-    avatarColor: '#10B981',
-    initials: 'PS',
+    name: 'Kishore Saravanan',
+    handle: 'kishores@okaxis',
+    avatarColor: '#E91E63', // Pink
+    initials: 'K',
   },
   {
     id: 'c3',
-    name: 'David Kim',
-    handle: 'david.k@nu',
-    avatarColor: '#F59E0B',
-    initials: 'DK',
+    name: 'Kanish',
+    handle: 'kanish@okhdfcbank',
+    avatarColor: '#D81B60', // Magenta
+    initials: 'K',
   },
   {
     id: 'c4',
-    name: 'Sneha Patel',
-    handle: 'sneha.p@nu',
-    avatarColor: '#EC4899',
-    initials: 'SP',
+    name: 'JENITTABL ESSY',
+    handle: 'jenittabl@okicici',
+    avatarColor: '#3F51B5', // Indigo
+    initials: 'JE',
   },
   {
     id: 'c5',
-    name: 'Rohan Verma',
-    handle: 'rohan.v@nu',
-    avatarColor: '#00D2FF',
-    initials: 'RV',
+    name: 'Mr G SUKUMAR',
+    handle: 'gsukumar@oksbi',
+    avatarColor: '#2E7D32', // Dark Green
+    initials: 'M',
   },
   {
     id: 'c6',
-    name: 'Ananya Roy',
-    handle: 'ananya.r@nu',
-    avatarColor: '#8B5CF6',
-    initials: 'AR',
+    name: 'Mr Sabesh E',
+    handle: 'sabeshe@okaxis',
+    avatarColor: '#689F38', // Lime Green
+    initials: 'M',
+  },
+  {
+    id: 'c7',
+    name: 'KATHIRVEL T',
+    handle: 'kathirvelt@oksbi',
+    avatarColor: '#EF6C00', // Orange
+    initials: 'K',
+  },
+  {
+    id: 'c8',
+    name: 'suresh kumar',
+    handle: 'sureshk@okicici',
+    avatarColor: '#E91E63', // Pink
+    initials: 'S',
+  },
+  {
+    id: 'c9',
+    name: 'Narasimman A',
+    handle: 'narasimmana@okaxis',
+    avatarColor: '#1976D2', // Blue
+    initials: 'N',
+  },
+  {
+    id: 'c10',
+    name: 'Airtel',
+    handle: 'airtelbills@airtel',
+    avatarColor: '#8E24AA', // Purple
+    initials: 'A',
   },
 ];
 
 export const DEMO_ACTIVITIES: DemoActivity[] = [
   {
     id: 'tx_1',
-    title: 'Metro Supermarket',
-    subtitle: 'Paid to merchant • Simulation',
-    amount: 420.00,
+    title: 'Kaja Mutton Stall',
+    subtitle: 'Paid • 19 November',
+    amount: 10.00,
     type: 'sent',
-    timestamp: 'Today, 2:45 PM',
+    timestamp: '19 November',
     category: 'Groceries',
-    iconName: 'cart-outline',
+    iconName: 'restaurant-outline',
   },
   {
     id: 'tx_2',
-    title: 'Salary Credit (Demo)',
-    subtitle: 'From Acme Corp • Simulation',
-    amount: 35000.00,
-    type: 'received',
-    timestamp: 'Yesterday, 9:15 AM',
-    category: 'Income',
-    iconName: 'arrow-down-circle-outline',
+    title: 'suresh kumar',
+    subtitle: 'Paid • 19 November',
+    amount: 10.00,
+    type: 'sent',
+    timestamp: '19 November',
+    category: 'Transfer',
+    iconName: 'person-outline',
   },
   {
     id: 'tx_3',
-    title: 'Blue Tokai Cafe',
-    subtitle: 'Paid to merchant • Simulation',
-    amount: 280.00,
+    title: 'Narasimman A',
+    subtitle: 'Paid • 19 November',
+    amount: 400.00,
     type: 'sent',
-    timestamp: '10 Nov, 5:30 PM',
-    category: 'Food & Dining',
-    iconName: 'cafe-outline',
+    timestamp: '19 November',
+    category: 'Transfer',
+    iconName: 'person-outline',
   },
   {
     id: 'tx_4',
-    title: 'Electricity Bill (Demo)',
-    subtitle: 'State Power Board • Simulation',
-    amount: 1450.00,
+    title: 'Kishore Saravanan',
+    subtitle: 'Paid • 19 November',
+    amount: 50.00,
     type: 'sent',
-    timestamp: '08 Nov, 11:20 AM',
-    category: 'Utilities',
-    iconName: 'flash-outline',
+    timestamp: '19 November',
+    category: 'Transfer',
+    iconName: 'person-outline',
   },
   {
     id: 'tx_5',
-    title: 'Refund: Online Order',
-    subtitle: 'Demo Store Refund • Simulation',
-    amount: 650.00,
-    type: 'received',
-    timestamp: '05 Nov, 4:10 PM',
-    category: 'Refund',
-    iconName: 'refresh-outline',
+    title: 'Airtel',
+    subtitle: 'Paid • 18 November',
+    amount: 39.00,
+    type: 'sent',
+    timestamp: '18 November',
+    category: 'Bill',
+    iconName: 'phone-portrait-outline',
   },
 ];
 
@@ -145,39 +175,27 @@ export interface QuickActionItem {
 
 export const QUICK_ACTIONS: QuickActionItem[] = [
   {
-    id: 'scan_qr',
-    title: 'Scan QR',
-    iconName: 'qr-code-outline',
-    description: 'Simulated QR Scanner for offline merchant demo codes.',
+    id: 'qa_scan_qr',
+    title: 'Scan any\nQR code',
+    iconName: 'qr-code',
+    description: 'Scan any QR code to send demo money.',
   },
   {
-    id: 'pay_anyone',
-    title: 'Pay anyone',
-    iconName: 'person-add-outline',
-    description: 'Simulated contact payment interface.',
+    id: 'qa_pay_anyone',
+    title: 'Pay\nanyone',
+    iconName: 'person-add',
+    description: 'Pay anyone using local demo contacts.',
   },
   {
-    id: 'bank_transfer',
-    title: 'Bank transfer',
-    iconName: 'business-outline',
-    description: 'Simulated account-to-account transfer simulation.',
+    id: 'qa_bank_transfer',
+    title: 'Bank\ntransfer',
+    iconName: 'business',
+    description: 'Transfer to any bank account with mock IFSC.',
   },
   {
-    id: 'recharge',
-    title: 'Mobile recharge',
-    iconName: 'phone-portrait-outline',
-    description: 'Simulated mobile prepaid/postpaid recharge flow.',
-  },
-  {
-    id: 'pay_bills',
-    title: 'Pay bills',
-    iconName: 'receipt-outline',
-    description: 'Simulated utilities, electricity, and water bill payment.',
-  },
-  {
-    id: 'self_transfer',
-    title: 'Self transfer',
-    iconName: 'swap-horizontal-outline',
-    description: 'Simulated transfer between user demo accounts.',
+    id: 'qa_mobile_recharge',
+    title: 'Mobile\nrecharge',
+    iconName: 'phone-portrait',
+    description: 'Simulated mobile recharge.',
   },
 ];

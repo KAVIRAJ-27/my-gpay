@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius, Typography } from '@/theme';
+import { Spacing, BorderRadius } from '@/theme';
 import { BrandMark } from './BrandMark';
 import { DemoBadge } from './DemoBadge';
+import { useTheme } from '@/context/ThemeContext';
 
 interface DashboardHeaderProps {
   userName: string;
@@ -18,7 +19,8 @@ export function DashboardHeader({
   onOpenNotifications,
   onLock,
 }: DashboardHeaderProps) {
-  // Dynamic greeting based on current local hour
+  const { colors } = useTheme();
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -27,7 +29,7 @@ export function DashboardHeader({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Top Demo Simulator Badge */}
       <View style={styles.badgeRow}>
         <DemoBadge label="INDEPENDENT DEMO WALLET SIMULATOR" />
@@ -36,11 +38,11 @@ export function DashboardHeader({
       {/* Main Header Bar */}
       <View style={styles.mainRow}>
         <View style={styles.brandGroup}>
-          <BrandMark size={40} showGlow={false} />
+          <BrandMark size={38} showGlow={false} />
           <View style={styles.titleColumn}>
-            <Text style={styles.brandTitle}>G Pay.nu</Text>
-            <Text style={styles.greetingText}>
-              {getGreeting()}, <Text style={styles.userName}>{userName}</Text>
+            <Text style={[styles.brandTitle, { color: colors.textPrimary }]}>G Pay.nu</Text>
+            <Text style={[styles.greetingText, { color: colors.textSecondary }]}>
+              {getGreeting()}, <Text style={[styles.userName, { color: colors.primary }]}>{userName}</Text>
             </Text>
           </View>
         </View>
@@ -48,30 +50,45 @@ export function DashboardHeader({
         <View style={styles.actionsGroup}>
           {/* Lock Simulator Button */}
           <TouchableOpacity
-            style={styles.iconButton}
+            style={[
+              styles.iconButton,
+              { backgroundColor: colors.surfaceSubtle, borderColor: colors.border },
+            ]}
             activeOpacity={0.7}
             onPress={onLock}
             accessibilityLabel="Lock Simulator">
-            <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} />
+            <Ionicons name="lock-closed-outline" size={19} color={colors.textSecondary} />
           </TouchableOpacity>
 
           {/* Notifications Button */}
           <TouchableOpacity
-            style={styles.iconButton}
+            style={[
+              styles.iconButton,
+              { backgroundColor: colors.surfaceSubtle, borderColor: colors.border },
+            ]}
             activeOpacity={0.7}
             onPress={onOpenNotifications}
             accessibilityLabel="Notifications">
-            <Ionicons name="notifications-outline" size={20} color={Colors.textSecondary} />
-            <View style={styles.notificationDot} />
+            <Ionicons name="notifications-outline" size={19} color={colors.textSecondary} />
+            <View style={[styles.notificationDot, { backgroundColor: colors.primary }]} />
           </TouchableOpacity>
 
           {/* Profile Avatar Button */}
           <TouchableOpacity
-            style={styles.avatarButton}
+            style={[
+              styles.avatarButton,
+              {
+                backgroundColor: colors.primary,
+                borderColor: colors.borderLight,
+                shadowColor: colors.primary,
+              },
+            ]}
             activeOpacity={0.8}
             onPress={onOpenProfile}
             accessibilityLabel="User Profile">
-            <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
+            <Text style={[styles.avatarText, { color: colors.textInverse }]}>
+              {userName.charAt(0).toUpperCase()}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -84,7 +101,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.md,
-    backgroundColor: Colors.background,
   },
   badgeRow: {
     alignItems: 'center',
@@ -106,17 +122,14 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: Colors.textPrimary,
     letterSpacing: -0.5,
   },
   greetingText: {
     fontSize: 12,
-    color: Colors.textSecondary,
     fontWeight: '500',
   },
   userName: {
-    color: Colors.primary,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   actionsGroup: {
     flexDirection: 'row',
@@ -127,9 +140,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceSubtle,
     borderWidth: 1,
-    borderColor: Colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -140,25 +151,20 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.primary,
   },
   avatarButton: {
     width: 38,
     height: 38,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.borderLight,
-    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   avatarText: {
-    color: Colors.textInverse,
     fontWeight: '800',
     fontSize: 16,
   },

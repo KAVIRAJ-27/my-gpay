@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius, Typography } from '@/theme';
+import { Spacing, BorderRadius } from '@/theme';
 import { QuickActionItem } from '@/data/mockData';
+import { useTheme } from '@/context/ThemeContext';
 
 interface QuickActionsGridProps {
   actions: QuickActionItem[];
@@ -10,29 +11,72 @@ interface QuickActionsGridProps {
 }
 
 export function QuickActionsGrid({ actions, onSelectAction }: QuickActionsGridProps) {
+  const { colors } = useTheme();
+
+  // Split into primary 4 and secondary actions
+  const primaryActions = actions.slice(0, 4);
+  const secondaryActions = actions.slice(4);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Quick Actions</Text>
-      <View style={styles.grid}>
-        {actions.map((action) => (
+      {/* Primary 4 Google Pay style circular actions */}
+      <View style={styles.primaryRow}>
+        {primaryActions.map((action) => (
           <TouchableOpacity
             key={action.id}
-            style={styles.actionCard}
-            activeOpacity={0.75}
+            style={styles.actionCol}
+            activeOpacity={0.7}
             onPress={() => onSelectAction(action)}>
-            <View style={styles.iconCircle}>
+            <View
+              style={[
+                styles.iconCircle,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.border,
+                },
+              ]}>
               <Ionicons
                 name={action.iconName as any}
                 size={24}
-                color={Colors.primary}
+                color={colors.primary}
               />
             </View>
-            <Text style={styles.actionTitle} numberOfLines={2}>
+            <Text
+              style={[styles.actionTitle, { color: colors.textPrimary }]}
+              numberOfLines={2}>
               {action.title}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Secondary quick chips if available */}
+      {secondaryActions.length > 0 && (
+        <View style={styles.secondaryRow}>
+          {secondaryActions.map((action) => (
+            <TouchableOpacity
+              key={action.id}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.border,
+                },
+              ]}
+              activeOpacity={0.7}
+              onPress={() => onSelectAction(action)}>
+              <Ionicons
+                name={action.iconName as any}
+                size={14}
+                color={colors.primary}
+              />
+              <Text style={[styles.chipText, { color: colors.textPrimary }]}>
+                {action.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -40,52 +84,55 @@ export function QuickActionsGrid({ actions, onSelectAction }: QuickActionsGridPr
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: Spacing.screenPadding,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
-  sectionTitle: {
-    ...Typography.title2,
-    fontSize: 16,
-    color: Colors.textPrimary,
+  primaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: Spacing.md,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    justifyContent: 'space-between',
-  },
-  actionCard: {
-    width: '30.5%',
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
+  actionCol: {
     alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
+    width: '23%',
   },
   iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceSubtle,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   actionTitle: {
     fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textPrimary,
+    fontWeight: '500',
     textAlign: 'center',
     lineHeight: 16,
+  },
+  secondaryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 2,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: BorderRadius.full,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
 });

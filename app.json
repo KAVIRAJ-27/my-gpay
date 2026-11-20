@@ -6,15 +6,15 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "gpaynu",
-    "userInterfaceStyle": "dark",
-    "backgroundColor": "#090D16",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#FFFFFF",
     "ios": {
       "icon": "./assets/expo.icon"
     },
     "android": {
       "package": "com.kaviraj.gpaynu",
       "adaptiveIcon": {
-        "backgroundColor": "#090D16",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-foreground.png"
@@ -30,7 +30,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#090D16",
+          "backgroundColor": "#FFFFFF",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 160
         }

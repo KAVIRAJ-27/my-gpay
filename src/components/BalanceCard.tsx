@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius, Typography, CommonStyles } from '@/theme';
+import { Spacing, BorderRadius, Typography, CommonStyles } from '@/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface BalanceCardProps {
   balance: number;
@@ -20,6 +21,7 @@ export function BalanceCard({
   onOpenDetails,
   onAddDemoCash,
 }: BalanceCardProps) {
+  const { colors } = useTheme();
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
 
   const formattedBalance = balance.toLocaleString('en-IN', {
@@ -28,59 +30,93 @@ export function BalanceCard({
   });
 
   return (
-    <View style={[CommonStyles.cardElevated, styles.card]}>
+    <View
+      style={[
+        CommonStyles.cardElevated,
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+          shadowColor: '#000',
+        },
+      ]}>
       {/* Top Banner inside card */}
       <View style={styles.topRow}>
-        <View style={styles.accountBadge}>
-          <Ionicons name="card-outline" size={14} color={Colors.primary} />
-          <Text style={styles.accountBadgeText}>
+        <View
+          style={[
+            styles.accountBadge,
+            { backgroundColor: colors.surfaceSubtle, borderColor: colors.border },
+          ]}>
+          <Ionicons name="card-outline" size={14} color={colors.primary} />
+          <Text style={[styles.accountBadgeText, { color: colors.textSecondary }]}>
             {bankName} ({accountMasked})
           </Text>
         </View>
 
         <TouchableOpacity
-          style={styles.eyeButton}
+          style={[
+            styles.eyeButton,
+            { backgroundColor: colors.surfaceSubtle, borderColor: colors.border },
+          ]}
           activeOpacity={0.7}
           onPress={() => setIsBalanceVisible(!isBalanceVisible)}
           accessibilityLabel={isBalanceVisible ? 'Hide balance' : 'Show balance'}>
           <Ionicons
             name={isBalanceVisible ? 'eye-outline' : 'eye-off-outline'}
             size={18}
-            color={Colors.textSecondary}
+            color={colors.textSecondary}
           />
         </TouchableOpacity>
       </View>
 
       {/* Balance Amount Section */}
       <View style={styles.amountContainer}>
-        <Text style={styles.balanceLabel}>Available Demo Balance</Text>
+        <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>
+          Available Demo Balance
+        </Text>
         <View style={styles.balanceRow}>
-          <Text style={styles.currencySymbol}>{currencySymbol}</Text>
-          <Text style={styles.balanceAmount}>
+          <Text style={[styles.currencySymbol, { color: colors.primary }]}>
+            {currencySymbol}
+          </Text>
+          <Text style={[styles.balanceAmount, { color: colors.textPrimary }]}>
             {isBalanceVisible ? formattedBalance : '••••••'}
           </Text>
         </View>
-        <Text style={styles.subtext}>
-          Local Offline Simulation • No Real Banking Connections
-        </Text>
+        <View style={[styles.watermarkBadge, { backgroundColor: colors.badgeBackground }]}>
+          <Ionicons name="shield-outline" size={12} color={colors.badgeText} />
+          <Text style={[styles.subtext, { color: colors.badgeText }]}>
+            SIMULATED — NO REAL MONEY TRANSFERRED
+          </Text>
+        </View>
       </View>
 
       {/* Card Action Chips */}
-      <View style={styles.chipsRow}>
+      <View style={[styles.chipsRow, { borderTopColor: colors.divider }]}>
         <TouchableOpacity
-          style={styles.chipButton}
-          activeOpacity={0.7}
+          style={[
+            styles.chipButton,
+            styles.chipPrimary,
+            { backgroundColor: colors.primary },
+          ]}
+          activeOpacity={0.8}
           onPress={onAddDemoCash}>
-          <Ionicons name="add-circle-outline" size={15} color={Colors.brandNu} />
-          <Text style={styles.chipText}>Add Demo Funds</Text>
+          <Ionicons name="add-circle" size={16} color={colors.textInverse} />
+          <Text style={[styles.chipTextPrimary, { color: colors.textInverse }]}>
+            Add Demo Funds
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.chipButton}
+          style={[
+            styles.chipButton,
+            { backgroundColor: colors.surfaceSubtle, borderColor: colors.border },
+          ]}
           activeOpacity={0.7}
           onPress={onOpenDetails}>
-          <Ionicons name="information-circle-outline" size={15} color={Colors.primary} />
-          <Text style={styles.chipText}>Simulation Info</Text>
+          <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
+          <Text style={[styles.chipText, { color: colors.textPrimary }]}>
+            Simulation Info
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -91,23 +127,20 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: Spacing.screenPadding,
     marginBottom: Spacing.lg,
-    padding: Spacing.xl,
-    backgroundColor: '#0F1626',
-    borderWidth: 1.5,
-    borderColor: '#1F2C4C',
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
   },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   accountBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surfaceSubtle,
     borderWidth: 1,
-    borderColor: Colors.border,
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: BorderRadius.full,
@@ -116,25 +149,22 @@ const styles = StyleSheet.create({
   accountBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textSecondary,
   },
   eyeButton: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceSubtle,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   amountContainer: {
     marginVertical: Spacing.xs,
   },
   balanceLabel: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xxs,
+    fontSize: 13,
+    fontWeight: '500',
+    marginBottom: 2,
   },
   balanceRow: {
     flexDirection: 'row',
@@ -142,44 +172,54 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   currencySymbol: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '700',
-    color: Colors.primary,
   },
   balanceAmount: {
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: '800',
-    color: Colors.textPrimary,
     letterSpacing: -0.5,
   },
+  watermarkBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
   subtext: {
-    fontSize: 11,
-    color: Colors.textTertiary,
-    marginTop: 6,
-    lineHeight: 15,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   chipsRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
   },
   chipButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surfaceSubtle,
     borderWidth: 1,
-    borderColor: Colors.border,
     borderRadius: BorderRadius.full,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
     gap: 6,
   },
+  chipPrimary: {
+    borderWidth: 0,
+  },
+  chipTextPrimary: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
   chipText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
-    color: Colors.textPrimary,
   },
 });

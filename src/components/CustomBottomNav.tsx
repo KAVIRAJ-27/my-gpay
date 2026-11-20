@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius } from '@/theme';
+import { Spacing, BorderRadius } from '@/theme';
+import { useTheme } from '@/context/ThemeContext';
 
-export type TabKey = 'home' | 'money' | 'activity' | 'you';
+export type TabKey = 'home' | 'money' | 'you' | 'activity';
 
 interface TabItem {
   key: TabKey;
@@ -22,20 +23,14 @@ const TABS: TabItem[] = [
   {
     key: 'money',
     label: 'Money',
-    iconOutline: 'wallet-outline',
-    iconFilled: 'wallet',
-  },
-  {
-    key: 'activity',
-    label: 'Activity',
-    iconOutline: 'time-outline',
-    iconFilled: 'time',
+    iconOutline: 'cash-outline',
+    iconFilled: 'cash',
   },
   {
     key: 'you',
     label: 'You',
-    iconOutline: 'person-outline',
-    iconFilled: 'person',
+    iconOutline: 'person-circle-outline',
+    iconFilled: 'person-circle',
   },
 ];
 
@@ -45,8 +40,17 @@ interface CustomBottomNavProps {
 }
 
 export function CustomBottomNav({ activeTab, onTabChange }: CustomBottomNavProps) {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.wrapper}>
+    <View
+      style={[
+        styles.wrapper,
+        {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+        },
+      ]}>
       <View style={styles.container}>
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;
@@ -59,16 +63,27 @@ export function CustomBottomNav({ activeTab, onTabChange }: CustomBottomNavProps
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
               accessibilityLabel={tab.label}>
-              {isActive && <View style={styles.activeGlow} />}
-              <Ionicons
-                name={(isActive ? tab.iconFilled : tab.iconOutline) as any}
-                size={22}
-                color={isActive ? Colors.primary : Colors.textSecondary}
-              />
+              {/* Material 3 active pill background */}
+              <View
+                style={[
+                  styles.iconContainer,
+                  isActive && {
+                    backgroundColor: colors.pillActive,
+                  },
+                ]}>
+                <Ionicons
+                  name={(isActive ? tab.iconFilled : tab.iconOutline) as any}
+                  size={20}
+                  color={isActive ? colors.pillActiveText : colors.textSecondary}
+                />
+              </View>
               <Text
                 style={[
                   styles.tabLabel,
-                  isActive ? styles.tabLabelActive : styles.tabLabelInactive,
+                  {
+                    color: isActive ? colors.textPrimary : colors.textSecondary,
+                    fontWeight: isActive ? '700' : '500',
+                  },
                 ]}>
                 {tab.label}
               </Text>
@@ -82,46 +97,36 @@ export function CustomBottomNav({ activeTab, onTabChange }: CustomBottomNavProps
 
 const styles = StyleSheet.create({
   wrapper: {
-    backgroundColor: Colors.background,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
     paddingBottom: Spacing.sm,
-    paddingTop: Spacing.xs,
+    paddingTop: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 4,
   },
   container: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
   },
-  activeGlow: {
-    position: 'absolute',
-    top: 2,
-    width: 38,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: Colors.primary,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.9,
-    shadowRadius: 6,
+  iconContainer: {
+    width: 60,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   tabLabel: {
     fontSize: 11,
-    marginTop: 4,
-  },
-  tabLabelActive: {
-    color: Colors.primary,
-    fontWeight: '700',
-  },
-  tabLabelInactive: {
-    color: Colors.textSecondary,
-    fontWeight: '500',
+    marginTop: 3,
+    letterSpacing: 0.1,
   },
 });

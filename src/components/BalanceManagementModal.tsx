@@ -292,10 +292,10 @@ export function BalanceManagementModal({
                   disabled={!isAmountValid || isProcessing}
                   onPress={handleTopUp}>
                   {isProcessing ? (
-                    <ActivityIndicator color="#000000" />
+                    <ActivityIndicator color={Colors.textInverse} />
                   ) : (
                     <>
-                      <Ionicons name="wallet-outline" size={18} color="#000000" />
+                      <Ionicons name="wallet-outline" size={18} color={Colors.textInverse} />
                       <Text style={styles.primaryButtonText}>
                         Deposit ₹{parsedAmount.toLocaleString('en-IN')} Demo Funds
                       </Text>
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chipButtonActive: {
-    backgroundColor: 'rgba(0, 210, 255, 0.15)',
+    backgroundColor: 'rgba(11, 87, 208, 0.08)',
     borderColor: Colors.primary,
   },
   chipButtonText: {
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   primaryButtonText: {
-    color: '#000000',
+    color: Colors.textInverse,
     fontSize: 15,
     fontWeight: '700',
   },

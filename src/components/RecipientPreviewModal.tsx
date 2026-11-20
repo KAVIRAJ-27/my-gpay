@@ -124,7 +124,7 @@ export function RecipientPreviewModal({
               activeOpacity={0.8}
               onPress={() => activePhone && onContinue(contact, activePhone)}>
               <Text style={styles.continueText}>Continue to Demo Pay</Text>
-              <Ionicons name="arrow-forward" size={18} color="#000" />
+              <Ionicons name="arrow-forward" size={18} color={Colors.textInverse} />
             </TouchableOpacity>
           </View>
         </View>
@@ -136,15 +136,15 @@ export function RecipientPreviewModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   card: {
-    backgroundColor: '#121826',
+    backgroundColor: Colors.surface,
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: 'rgba(0, 210, 255, 0.2)',
+    borderColor: Colors.border,
     maxHeight: '85%',
   },
   header: {
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: Colors.border,
   },
   closeBtn: {
     padding: Spacing.xs,
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(0, 210, 255, 0.15)',
+    backgroundColor: 'rgba(11, 87, 208, 0.08)',
     borderWidth: 2,
     borderColor: Colors.primary,
     alignItems: 'center',
@@ -215,16 +215,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.surfaceVariant,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: Colors.border,
   },
   phoneOptionSelected: {
     borderColor: Colors.primary,
-    backgroundColor: 'rgba(0, 210, 255, 0.08)',
+    backgroundColor: 'rgba(11, 87, 208, 0.08)',
   },
   phoneDetails: {
     flex: 1,
@@ -247,11 +247,11 @@ const styles = StyleSheet.create({
   simulationBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(0, 210, 255, 0.06)',
+    backgroundColor: 'rgba(11, 87, 208, 0.06)',
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: 'rgba(0, 210, 255, 0.2)',
+    borderColor: 'rgba(11, 87, 208, 0.2)',
   },
   simulationTextContainer: {
     flex: 1,
@@ -272,11 +272,11 @@ const styles = StyleSheet.create({
   footer: {
     padding: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: Colors.border,
   },
   continueButton: {
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.full,
     paddingVertical: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   },
   continueText: {
     ...Typography.button,
-    color: '#000',
+    color: Colors.textInverse,
     fontWeight: '700',
   },
 });
