@@ -115,29 +115,7 @@ export default function MainAppScreen() {
             />
           )}
 
-          {activeTab === 'activity' && (
-            <ActivityTab
-              onSelectActivity={(txn: DemoTransactionRecord) => {
-                setDetailModalItem({
-                  id: txn.id,
-                  title: `${txn.type === 'credit' ? 'Received from / Added' : 'Paid to'} ${txn.recipient_name}`,
-                  iconName:
-                    txn.category === 'topup'
-                      ? 'add-circle-outline'
-                      : txn.category === 'reset'
-                      ? 'refresh-outline'
-                      : txn.type === 'credit'
-                      ? 'arrow-down-circle-outline'
-                      : 'paper-plane-outline',
-                  description: `Amount: ₹${txn.amount.toLocaleString('en-IN', {
-                    minimumFractionDigits: 2,
-                  })}\nStatus: ${txn.status}\nDate: ${txn.created_at_formatted}\nNote: ${
-                    txn.note || 'None'
-                  }\n\nLocal Demo Record ID: ${txn.id}\n(Stored in SQLite — not a payment reference)`,
-                });
-              }}
-            />
-          )}
+          {activeTab === 'activity' && <ActivityTab />}
 
           {activeTab === 'you' && <YouTab onLock={lockSimulator} />}
         </View>

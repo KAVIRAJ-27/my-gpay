@@ -23,7 +23,7 @@ interface ActivityTabProps {
 
 export function ActivityTab({ onSelectActivity }: ActivityTabProps) {
   const [transactions, setTransactions] = useState<DemoTransactionRecord[]>([]);
-  const [filter, setFilter] = useState<'all' | 'debit' | 'credit'>('all');
+  const [filter, setFilter] = useState<'all' | 'transfer' | 'topup' | 'reset'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTxn, setSelectedTxn] = useState<DemoTransactionRecord | null>(null);
 
@@ -41,8 +41,9 @@ export function ActivityTab({ onSelectActivity }: ActivityTabProps) {
   }, [loadTransactions]);
 
   const filtered = transactions.filter((item) => {
-    if (filter === 'debit' && item.type !== 'debit') return false;
-    if (filter === 'credit' && item.type !== 'credit') return false;
+    if (filter === 'transfer' && item.category !== 'transfer') return false;
+    if (filter === 'topup' && item.category !== 'topup') return false;
+    if (filter === 'reset' && item.category !== 'reset') return false;
     if (searchQuery.trim().length > 0) {
       const q = searchQuery.toLowerCase();
       const matchName = item.recipient_name.toLowerCase().includes(q);
@@ -54,11 +55,7 @@ export function ActivityTab({ onSelectActivity }: ActivityTabProps) {
   });
 
   const handleRowPress = (item: DemoTransactionRecord) => {
-    if (onSelectActivity) {
-      onSelectActivity(item);
-    } else {
-      setSelectedTxn(item);
-    }
+    setSelectedTxn(item);
   };
 
   return (
@@ -105,14 +102,16 @@ export function ActivityTab({ onSelectActivity }: ActivityTabProps) {
 
         {/* Filter Chips */}
         <View style={styles.filterRow}>
-          {(['all', 'debit', 'credit'] as const).map((key) => {
+          {(['all', 'transfer', 'topup', 'reset'] as const).map((key) => {
             const isActive = filter === key;
             const label =
               key === 'all'
-                ? 'All Transactions'
-                : key === 'debit'
-                ? 'Paid (Debit)'
-                : 'Added (Credit)';
+                ? 'All'
+                : key === 'transfer'
+                ? 'Transfers'
+                : key === 'topup'
+                ? 'Top-ups'
+                : 'Resets';
             return (
               <TouchableOpacity
                 key={key}

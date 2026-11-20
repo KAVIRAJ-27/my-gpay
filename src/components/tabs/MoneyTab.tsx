@@ -23,7 +23,12 @@ export function MoneyTab({
   onAddFunds,
   onResetWallet,
 }: MoneyTabProps) {
-  const [showConfirmReset, setShowConfirmReset] = useState(false);
+  const [isBalanceVisible, setIsBalanceVisible] = useState(true);
+
+  const formattedBalance = balance.toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   const handleResetPress = () => {
     Alert.alert(
@@ -44,6 +49,7 @@ export function MoneyTab({
     <ScrollView
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}>
+      {/* Header Row */}
       <View style={styles.headerRow}>
         <View>
           <Text style={styles.title}>Money & Accounts</Text>
@@ -61,25 +67,49 @@ export function MoneyTab({
             <Ionicons name="business" size={18} color={Colors.primary} />
             <Text style={styles.bankName}>{USER_PROFILE.bankName}</Text>
           </View>
-          <View style={styles.statusPill}>
-            <View style={styles.dot} />
-            <Text style={styles.statusText}>Simulated</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.eyeBtn}
+              onPress={() => setIsBalanceVisible(!isBalanceVisible)}
+              accessibilityLabel={isBalanceVisible ? 'Hide balance' : 'Show balance'}>
+              <Ionicons
+                name={isBalanceVisible ? 'eye-outline' : 'eye-off-outline'}
+                size={18}
+                color={Colors.textSecondary}
+              />
+            </TouchableOpacity>
+            <View style={styles.statusPill}>
+              <View style={styles.dot} />
+              <Text style={styles.statusText}>Simulated</Text>
+            </View>
           </View>
         </View>
 
-        <Text style={styles.accountNumber}>
-          Account: {USER_PROFILE.accountNumberMasked}
-        </Text>
-        <Text style={styles.upiHandle}>UPI ID: {USER_PROFILE.upiId}</Text>
+        {/* Account Details Specs */}
+        <View style={styles.specsGrid}>
+          <View style={styles.specItem}>
+            <Text style={styles.specLabel}>Account Number</Text>
+            <Text style={styles.specValue}>{USER_PROFILE.accountNumberMasked}</Text>
+          </View>
+          <View style={styles.specItem}>
+            <Text style={styles.specLabel}>IFSC Code</Text>
+            <Text style={styles.specValue}>UTIB0000214</Text>
+          </View>
+          <View style={styles.specItem}>
+            <Text style={styles.specLabel}>UPI ID</Text>
+            <Text style={styles.specValue}>{USER_PROFILE.upiId}</Text>
+          </View>
+          <View style={styles.specItem}>
+            <Text style={styles.specLabel}>Branch</Text>
+            <Text style={styles.specValue}>Tech Park Demo Branch</Text>
+          </View>
+        </View>
 
+        {/* Balance Display */}
         <View style={styles.balanceRow}>
           <Text style={styles.balanceLabel}>Simulated SQLite Balance</Text>
           <Text style={styles.balanceValue}>
-            ₹
-            {balance.toLocaleString('en-IN', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
+            {isBalanceVisible ? `₹${formattedBalance}` : '₹ ••••••'}
           </Text>
         </View>
 
@@ -95,7 +125,7 @@ export function MoneyTab({
               color={Colors.textInverse}
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.addFundsBtnText}>Top Up Demo Balance</Text>
+            <Text style={styles.addFundsBtnText}>Manage & Top Up</Text>
           </TouchableOpacity>
 
           {onResetWallet && (
@@ -116,44 +146,66 @@ export function MoneyTab({
       </View>
 
       {/* Linked Simulated Cards */}
-      <Text style={styles.sectionHeader}>Simulated Payment Methods</Text>
+      <Text style={styles.sectionHeader}>Simulated Payment Cards</Text>
       <View style={[CommonStyles.card, styles.methodsCard]}>
+        {/* Card 1: Virtual Credit */}
         <View style={styles.methodRow}>
-          <View style={styles.methodIcon}>
-            <Ionicons name="card-outline" size={20} color={Colors.brandNu} />
+          <View style={[styles.methodIcon, { backgroundColor: 'rgba(99, 102, 241, 0.15)' }]}>
+            <Ionicons name="card" size={20} color={Colors.secondary} />
           </View>
           <View style={styles.methodDetails}>
-            <Text style={styles.methodTitle}>Demo Platinum Credit Card</Text>
-            <Text style={styles.methodSub}>•••• 9021 • Visa Simulation</Text>
+            <Text style={styles.methodTitle}>Nu Platinum Virtual Credit</Text>
+            <Text style={styles.methodSub}>•••• 9021 • Exp: 11/28 • Visa</Text>
           </View>
-          <Text style={styles.methodLimit}>₹1,50,000</Text>
+          <View style={styles.limitTag}>
+            <Text style={styles.limitTagText}>Limit ₹1,50,000</Text>
+          </View>
         </View>
 
         <View style={styles.divider} />
 
+        {/* Card 2: Titanium Debit */}
         <View style={styles.methodRow}>
-          <View style={styles.methodIcon}>
-            <Ionicons name="wallet-outline" size={20} color={Colors.primary} />
+          <View style={[styles.methodIcon, { backgroundColor: 'rgba(0, 210, 255, 0.15)' }]}>
+            <Ionicons name="card-outline" size={20} color={Colors.primary} />
           </View>
           <View style={styles.methodDetails}>
-            <Text style={styles.methodTitle}>G Pay.nu Local Cash</Text>
-            <Text style={styles.methodSub}>Offline Sandbox Wallet</Text>
+            <Text style={styles.methodTitle}>Axis Titanium Demo Debit</Text>
+            <Text style={styles.methodSub}>•••• 5842 • Exp: 08/29 • RuPay</Text>
           </View>
-          <Text style={styles.methodLimit}>Active</Text>
+          <View style={[styles.limitTag, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+            <Text style={[styles.limitTagText, { color: Colors.success }]}>Linked</Text>
+          </View>
         </View>
       </View>
 
-      {/* Safety Notice */}
-      <View style={styles.safetyBox}>
-        <Ionicons
-          name="information-circle-outline"
-          size={16}
-          color={Colors.textTertiary}
-          style={{ marginRight: 8 }}
-        />
-        <Text style={styles.safetyText}>
-          Balances and limits shown are mock numbers stored locally in SQLite.
-          G Pay.nu does not connect to bank APIs or payment rails.
+      {/* Safety & Limits Card */}
+      <Text style={styles.sectionHeader}>Simulator Limits & Guardrails</Text>
+      <View style={[CommonStyles.card, styles.limitsCard]}>
+        <View style={styles.limitRow}>
+          <Ionicons name="shield-checkmark-outline" size={18} color={Colors.primary} />
+          <View style={{ flex: 1, marginLeft: 8 }}>
+            <Text style={styles.limitTitle}>Daily Simulated Transfer Cap</Text>
+            <Text style={styles.limitDesc}>₹1,00,000.00 max per day across all contacts</Text>
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.limitRow}>
+          <Ionicons name="lock-closed-outline" size={18} color={Colors.brandNu} />
+          <View style={{ flex: 1, marginLeft: 8 }}>
+            <Text style={styles.limitTitle}>100% Offline SQLite Encryption</Text>
+            <Text style={styles.limitDesc}>Zero financial network connectivity or UPI API integration</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Watermark Banner */}
+      <View style={styles.watermarkBox}>
+        <Ionicons name="information-circle-outline" size={16} color={Colors.warning} />
+        <Text style={styles.watermarkText}>
+          INDEPENDENT DEMO WALLET SIMULATOR • FOR DEMONSTRATION PURPOSES ONLY
         </Text>
       </View>
     </ScrollView>
@@ -181,7 +233,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   accountCard: {
-    padding: Spacing.xl,
+    padding: Spacing.lg,
     backgroundColor: '#0F1626',
     borderWidth: 1.5,
     borderColor: '#1F2C4C',
@@ -201,8 +253,16 @@ const styles = StyleSheet.create({
   },
   bankName: {
     ...Typography.title2,
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.textPrimary,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  eyeBtn: {
+    padding: 4,
   },
   statusPill: {
     flexDirection: 'row',
@@ -224,16 +284,27 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.primary,
   },
-  accountNumber: {
-    ...Typography.body,
-    fontSize: 13,
-    color: Colors.textSecondary,
+  specsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: Spacing.md,
+    backgroundColor: Colors.surfaceSubtle,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+  },
+  specItem: {
+    width: '48%',
+  },
+  specLabel: {
+    fontSize: 11,
+    color: Colors.textTertiary,
     marginBottom: 2,
   },
-  upiHandle: {
-    ...Typography.caption,
-    color: Colors.textTertiary,
-    marginBottom: Spacing.md,
+  specValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.textPrimary,
   },
   balanceRow: {
     backgroundColor: Colors.surface,
@@ -244,15 +315,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   balanceLabel: {
-    ...Typography.caption,
     fontSize: 12,
     color: Colors.textSecondary,
     marginBottom: 4,
   },
   balanceValue: {
-    ...Typography.hero,
     fontSize: 26,
-    color: Colors.textPrimary,
+    color: Colors.primary,
     fontWeight: '800',
   },
   actionRow: {
@@ -264,8 +333,8 @@ const styles = StyleSheet.create({
     height: 44,
   },
   addFundsBtnText: {
-    ...Typography.bodyBold,
     fontSize: 14,
+    fontWeight: '700',
     color: Colors.textInverse,
   },
   resetBtn: {
@@ -280,14 +349,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(245, 158, 11, 0.3)',
   },
   resetBtnText: {
-    ...Typography.caption,
     fontSize: 13,
     fontWeight: '700',
     color: Colors.warning,
   },
   sectionHeader: {
-    ...Typography.title2,
     fontSize: 15,
+    fontWeight: '700',
     color: Colors.textPrimary,
     marginBottom: Spacing.md,
   },
@@ -302,10 +370,9 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   methodIcon: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surfaceSubtle,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.md,
@@ -314,36 +381,65 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   methodTitle: {
-    ...Typography.bodyBold,
     fontSize: 14,
+    fontWeight: '700',
     color: Colors.textPrimary,
   },
   methodSub: {
-    ...Typography.caption,
     fontSize: 12,
     color: Colors.textSecondary,
+    marginTop: 2,
   },
-  methodLimit: {
-    ...Typography.caption,
+  limitTag: {
+    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.sm,
+  },
+  limitTagText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.secondary,
+  },
+  limitsCard: {
+    padding: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  limitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  limitTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textTertiary,
+    color: Colors.textPrimary,
+  },
+  limitDesc: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: Colors.border,
+    marginVertical: 4,
   },
-  safetyBox: {
+  watermarkBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
   },
-  safetyText: {
-    ...Typography.caption,
-    fontSize: 12,
-    color: Colors.textTertiary,
+  watermarkText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.warning,
     flex: 1,
     lineHeight: 16,
   },
