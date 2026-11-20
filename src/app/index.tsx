@@ -11,6 +11,7 @@ import { ActivityTab } from '@/components/tabs/ActivityTab';
 import { YouTab } from '@/components/tabs/YouTab';
 import { CustomBottomNav, TabKey } from '@/components/CustomBottomNav';
 import { ActionPlaceholderModal } from '@/components/ActionPlaceholderModal';
+import { BalanceManagementModal } from '@/components/BalanceManagementModal';
 import { QuickActionItem, USER_PROFILE } from '@/data/mockData';
 import {
   getDemoBalance,
@@ -24,6 +25,7 @@ export default function MainAppScreen() {
   const [activeTab, setActiveTab] = useState<TabKey>('home');
   const [detailModalItem, setDetailModalItem] = useState<QuickActionItem | null>(null);
   const [demoBalance, setDemoBalance] = useState<number>(USER_PROFILE.demoBalance);
+  const [showBalanceModal, setShowBalanceModal] = useState<boolean>(false);
 
   // Sync SQLite balance
   const refreshBalance = useCallback(async () => {
@@ -61,22 +63,8 @@ export default function MainAppScreen() {
     return () => subscription.remove();
   }, [isAuthenticated, activeTab]);
 
-  const handleAddFundsFromMoneyTab = async () => {
-    try {
-      const res = await addDemoFunds(1000, 'Top-up from Money tab');
-      setDemoBalance(res.newBalance);
-      setDetailModalItem({
-        id: 'topup_success',
-        title: 'Demo Balance Topped Up',
-        iconName: 'wallet-outline',
-        description: `Added ₹1,000.00 to local simulated demo wallet.\nUpdated Balance: ₹${res.newBalance.toLocaleString(
-          'en-IN',
-          { minimumFractionDigits: 2 }
-        )}\n\nStored in device SQLite database. Offline simulation prototype only.`,
-      });
-    } catch {
-      // Fail-safe
-    }
+  const handleAddFundsFromMoneyTab = () => {
+    setShowBalanceModal(true);
   };
 
   const handleResetWalletFromMoneyTab = async () => {
@@ -168,6 +156,19 @@ export default function MainAppScreen() {
           action={detailModalItem}
           visible={detailModalItem !== null}
           onClose={() => setDetailModalItem(null)}
+        />
+
+        {/* Global Balance Management Modal (Phase 9) */}
+        <BalanceManagementModal
+          visible={showBalanceModal}
+          onClose={() => {
+            setShowBalanceModal(false);
+            refreshBalance();
+          }}
+          onBalanceUpdated={(newBal) => {
+            setDemoBalance(newBal);
+            refreshBalance();
+          }}
         />
       </View>
     </SafeAreaView>

@@ -380,3 +380,37 @@ export async function getRecentDemoTransactions(
   );
   return rows;
 }
+
+export interface WalletStats {
+  currentBalance: number;
+  totalCredited: number;
+  totalDebited: number;
+  transactionCount: number;
+}
+
+/**
+ * Retrieve summary statistics of local simulated demo wallet
+ */
+export async function getWalletStats(): Promise<WalletStats> {
+  const db = await getDatabase();
+  const walletRow = await db.getFirstAsync<{ balance: number }>(
+    'SELECT balance FROM demo_wallet WHERE wallet_id = ?',
+    ['default_wallet']
+  );
+  const creditRow = await db.getFirstAsync<{ total: number | null }>(
+    "SELECT SUM(amount) as total FROM demo_transactions WHERE type = 'credit' AND category != 'reset'"
+  );
+  const debitRow = await db.getFirstAsync<{ total: number | null }>(
+    "SELECT SUM(amount) as total FROM demo_transactions WHERE type = 'debit'"
+  );
+  const countRow = await db.getFirstAsync<{ cnt: number }>(
+    'SELECT COUNT(*) as cnt FROM demo_transactions'
+  );
+
+  return {
+    currentBalance: walletRow ? walletRow.balance : USER_PROFILE.demoBalance,
+    totalCredited: creditRow?.total || 0,
+    totalDebited: debitRow?.total || 0,
+    transactionCount: countRow?.cnt || 0,
+  };
+}

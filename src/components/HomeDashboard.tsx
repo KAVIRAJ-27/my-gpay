@@ -14,6 +14,7 @@ import { RecipientPreviewModal } from './RecipientPreviewModal';
 import { SendMoneyScreen } from './SendMoneyScreen';
 import { QRScannerModal } from './QRScannerModal';
 import { BankTransferModal } from './BankTransferModal';
+import { BalanceManagementModal } from './BalanceManagementModal';
 
 import {
   USER_PROFILE,
@@ -73,6 +74,9 @@ export function HomeDashboard({
 
   // Bank Transfer state (Phase 8)
   const [showBankTransfer, setShowBankTransfer] = useState(false);
+
+  // Balance Management state (Phase 9)
+  const [showBalanceModal, setShowBalanceModal] = useState(false);
 
   // Device Contacts cached for horizontal preview if permission is granted
   const [deviceContacts, setDeviceContacts] = useState<AppContact[]>([]);
@@ -217,25 +221,8 @@ export function HomeDashboard({
     setShowActionModal(true);
   };
 
-  const handleAddDemoCash = async () => {
-    try {
-      const res = await addDemoFunds(500, 'Simulated cash top-up');
-      setDemoBalance(res.newBalance);
-      onBalanceChange?.(res.newBalance);
-      refreshDatabaseData();
-      setSelectedAction({
-        id: 'add_cash',
-        title: 'Demo Cash Added',
-        iconName: 'wallet-outline',
-        description: `Added ₹500.00 to local simulated wallet.\nUpdated Balance: ₹${res.newBalance.toLocaleString(
-          'en-IN',
-          { minimumFractionDigits: 2 }
-        )}\n\nLocal prototype simulation only.`,
-      });
-      setShowActionModal(true);
-    } catch {
-      // Fail-safe
-    }
+  const handleAddDemoCash = () => {
+    setShowBalanceModal(true);
   };
 
   const handleOpenInfo = () => {
@@ -357,6 +344,20 @@ export function HomeDashboard({
           refreshDatabaseData();
         }}
         onTransferSuccess={(newBal) => {
+          setDemoBalance(newBal);
+          onBalanceChange?.(newBal);
+          refreshDatabaseData();
+        }}
+      />
+
+      {/* Demo Balance Management Modal (Phase 9) */}
+      <BalanceManagementModal
+        visible={showBalanceModal}
+        onClose={() => {
+          setShowBalanceModal(false);
+          refreshDatabaseData();
+        }}
+        onBalanceUpdated={(newBal) => {
           setDemoBalance(newBal);
           onBalanceChange?.(newBal);
           refreshDatabaseData();
