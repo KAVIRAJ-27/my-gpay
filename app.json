@@ -35,6 +35,12 @@
           "imageWidth": 160
         }
       ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow G Pay.nu to access your contacts to simulate paying anyone."
+        }
+      ],
       "expo-sqlite"
     ],
     "experiments": {
