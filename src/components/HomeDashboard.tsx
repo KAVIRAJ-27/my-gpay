@@ -11,6 +11,7 @@ import { NotificationModal } from './NotificationModal';
 import { ProfileModal } from './ProfileModal';
 import { ContactsScreen } from './ContactsScreen';
 import { RecipientPreviewModal } from './RecipientPreviewModal';
+import { SendMoneyScreen } from './SendMoneyScreen';
 
 import {
   USER_PROFILE,
@@ -19,6 +20,7 @@ import {
   DEMO_ACTIVITIES,
   QuickActionItem,
   DemoActivity,
+  FictionalContact,
 } from '@/data/mockData';
 import {
   AppContact,
@@ -47,6 +49,11 @@ export function HomeDashboard({ onNavigateTab }: HomeDashboardProps) {
   const [showContactsScreen, setShowContactsScreen] = useState(false);
   const [selectedContactForPreview, setSelectedContactForPreview] = useState<AppContact | null>(null);
   const [selectedPhone, setSelectedPhone] = useState<ContactPhoneNumber | null>(null);
+
+  // Send Money Screen state (Phase 5)
+  const [showSendMoney, setShowSendMoney] = useState(false);
+  const [sendMoneyRecipient, setSendMoneyRecipient] = useState<AppContact | null>(null);
+  const [sendMoneyPhone, setSendMoneyPhone] = useState<ContactPhoneNumber | null>(null);
 
   // Device Contacts cached for horizontal preview if permission is granted
   const [deviceContacts, setDeviceContacts] = useState<AppContact[]>([]);
@@ -92,14 +99,23 @@ export function HomeDashboard({ onNavigateTab }: HomeDashboardProps) {
       setSelectedContactForPreview(contact as AppContact);
       setSelectedPhone((contact as AppContact).phoneNumbers[0] || null);
     } else {
-      // It's a fictional contact
-      setSelectedAction({
-        id: contact.id,
-        title: `Pay ${contact.name}`,
-        iconName: 'person-circle-outline',
-        description: `Simulated payment interface for demo contact: ${contact.handle}`,
-      });
-      setShowActionModal(true);
+      // Fictional contact -> adapt to AppContact structure
+      const fictional = contact as FictionalContact;
+      const adapted: AppContact = {
+        id: fictional.id,
+        name: fictional.name,
+        initials: fictional.initials,
+        phoneNumbers: [
+          {
+            label: 'mobile',
+            number: '+919876543210',
+            formattedNumber: '+91 98765 43210',
+          },
+        ],
+        primaryPhone: '+919876543210',
+      };
+      setSelectedContactForPreview(adapted);
+      setSelectedPhone(adapted.phoneNumbers[0]);
     }
   };
 
@@ -109,13 +125,9 @@ export function HomeDashboard({ onNavigateTab }: HomeDashboardProps) {
   ) => {
     setShowContactsScreen(false);
     setSelectedContactForPreview(null);
-    setSelectedAction({
-      id: `recipient_${contact.id}`,
-      title: `Simulated Transfer to ${contact.name}`,
-      iconName: 'paper-plane-outline',
-      description: `Recipient: ${contact.name}\nPhone: ${maskPhoneNumber(phone.formattedNumber)}\n\nSIMULATION ONLY: Recipient selected successfully. No real money or bank transactions occur.`,
-    });
-    setShowActionModal(true);
+    setSendMoneyRecipient(contact);
+    setSendMoneyPhone(phone);
+    setShowSendMoney(true);
   };
 
   const handleContinueFromRecipientPreview = (
@@ -123,13 +135,9 @@ export function HomeDashboard({ onNavigateTab }: HomeDashboardProps) {
     phone: ContactPhoneNumber
   ) => {
     setSelectedContactForPreview(null);
-    setSelectedAction({
-      id: `recipient_${contact.id}`,
-      title: `Simulated Transfer to ${contact.name}`,
-      iconName: 'paper-plane-outline',
-      description: `Recipient: ${contact.name}\nPhone: ${maskPhoneNumber(phone.formattedNumber)}\n\nSIMULATION ONLY: Recipient selected successfully. No real money or bank transactions occur.`,
-    });
-    setShowActionModal(true);
+    setSendMoneyRecipient(contact);
+    setSendMoneyPhone(phone);
+    setShowSendMoney(true);
   };
 
   const handleSelectActivity = (activity: DemoActivity) => {
@@ -234,6 +242,21 @@ export function HomeDashboard({ onNavigateTab }: HomeDashboardProps) {
         onSelectPhone={setSelectedPhone}
         onClose={() => setSelectedContactForPreview(null)}
         onContinue={handleContinueFromRecipientPreview}
+      />
+
+      {/* Send Money Flow Modal (Phase 5 UI) */}
+      <SendMoneyScreen
+        visible={showSendMoney}
+        recipient={sendMoneyRecipient}
+        initialPhone={sendMoneyPhone}
+        onClose={() => {
+          setShowSendMoney(false);
+          refreshDeviceContacts();
+        }}
+        onChangeRecipient={() => {
+          setShowSendMoney(false);
+          setShowContactsScreen(true);
+        }}
       />
 
       {/* Action Placeholder Modal */}
